@@ -4,7 +4,7 @@ import Loadable from 'ui-component/Loadable';
 import ProtectedRoute from './ProtectedRoute';
 
 // pages
-const DashboardDefault = Loadable(lazy(() => import('views/dashboard/Default')));
+const DashboardDefault = Loadable(lazy(() => import('views/dashboard/dashboard')));
 const ProductsPage = Loadable(lazy(() => import('views/products')));
 const OrdersPage = Loadable(lazy(() => import('views/orders')));
 const UsersPage = Loadable(lazy(() => import('views/users')));

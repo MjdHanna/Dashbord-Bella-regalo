@@ -985,7 +985,7 @@ any-promise@^1.0.0:
   resolved "https://registry.npmjs.org/any-promise/-/any-promise-1.3.0.tgz"
   integrity sha512-7UvmKalWRt1wgjL1RrGxoSJW/0QZFIegpeGvZG9kjp8vrRu55XTHbwnqq2GpXm9uLbcuhxm3IqX9OB4MZR1b2A==
 
-apexcharts@>=4.0.0, apexcharts@5.3.6:
+apexcharts@^5.3.6, apexcharts@>=4.0.0:
   version "5.3.6"
   resolved "https://registry.npmjs.org/apexcharts/-/apexcharts-5.3.6.tgz"
   integrity sha512-sVEPw+J0Gp0IHQabKu8cfdsxlfME0e36Wid7RIaPclGM2OUt+O7O4+6mfAmTUYhy5bDk8cNHzEhPfVtLCIXEJA==
@@ -3168,7 +3168,7 @@ quick-lru@^6.1.1:
   resolved "https://registry.npmjs.org/quick-lru/-/quick-lru-6.1.2.tgz"
   integrity sha512-AAFUA5O1d83pIHEhJwWCq/RQcRukCkn/NSm2QsTEMle5f2hP0ChI2+3Xb051PZCkLryI/Ir1MVKviT2FIloaTQ==
 
-react-apexcharts@1.9.0:
+react-apexcharts@^1.9.0:
   version "1.9.0"
   resolved "https://registry.npmjs.org/react-apexcharts/-/react-apexcharts-1.9.0.tgz"
   integrity sha512-DDBzQFuKdwyCEZnji1yIcjlnV8hRr4VDabS5Y3iuem/WcTq6n4VbjWPzbPm3aOwW4I+rf/gA3zWqhws4z9CwLw==

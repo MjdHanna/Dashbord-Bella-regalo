@@ -33,7 +33,7 @@ export default function Reports() {
 
     try {
       await markAsRead(item.id).unwrap();
-      refetch(); // 🔥 هذا هو الحل الحقيقي
+      refetch(); 
     } catch (err) {
       console.error(err);
     }
