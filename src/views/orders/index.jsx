@@ -20,11 +20,14 @@ import EditIcon from '@mui/icons-material/Edit';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 
 import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 
 import { useGetOrdersQuery, useDeleteOrderMutation, useUpdateOrderMutation } from '../../redux/features/services/baseApi';
 
 export default function Orders() {
   const theme = useTheme();
+
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const { data, isLoading } = useGetOrdersQuery();
   const [deleteOrder] = useDeleteOrderMutation();
@@ -32,7 +35,6 @@ export default function Orders() {
 
   const orders = Array.isArray(data?.data) ? data.data : [];
 
-  // ===== Modal State =====
   const [open, setOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
@@ -43,127 +45,81 @@ export default function Orders() {
     status: ''
   });
 
-  // ===== Delete =====
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this order?')) return;
-
-    try {
-      await deleteOrder(id).unwrap();
-    } catch (err) {
-      console.error(err);
-    }
+    await deleteOrder(id);
   };
 
-  // ===== Open Edit =====
   const handleEditOpen = (order) => {
     setSelectedOrder(order);
-
     setForm({
       shippingAddress: order.shippingAddress || '',
       shippingPhone: order.shippingPhone || '',
       shippingName: order.customerName || '',
       status: order.status || ''
     });
-
     setOpen(true);
   };
 
-  // ===== Save Edit =====
   const handleSave = async () => {
-    try {
-      const payload = {
-        shipping_name: String(form.shippingName || ''),
-        shipping_phone: String(form.shippingPhone || ''),
-        shipping_address: String(form.shippingAddress || ''),
-        status: form.status || 'pending'
-      };
-      await updateOrder({
-        id: selectedOrder.id,
-        formData: payload
-      }).unwrap();
-
-      setOpen(false);
-    } catch (err) {
-      console.error(err);
-    }
+    await updateOrder({
+      id: selectedOrder.id,
+      formData: {
+        shipping_name: form.shippingName,
+        shipping_phone: form.shippingPhone,
+        shipping_address: form.shippingAddress,
+        status: form.status
+      }
+    });
+    setOpen(false);
   };
-  if (isLoading) {
-    return <Typography p={3}>Loading orders...</Typography>;
-  }
+
+  if (isLoading) return <Typography p={3}>Loading...</Typography>;
 
   return (
-    <Box sx={{ minHeight: '100vh', p: 3, background: '#f5f7fa' }}>
-      {/* HEADER */}
-      <Stack direction="row" justifyContent="space-between" mb={4}>
-        <Typography variant="h4" fontWeight={700}>
-          🛒 Orders Management
+    <Box p={isMobile ? 2 : 3}>
+      <Stack direction={isMobile ? 'column' : 'row'} justifyContent="space-between" spacing={2} mb={4}>
+        <Typography variant={isMobile ? 'h5' : 'h4'} fontWeight={700}>
+          🛒 Orders
         </Typography>
 
-        <Chip label={`${orders.length} orders`} color="primary" />
+        <Chip label={`${orders.length} orders`} variant="outlined" />
       </Stack>
-
-      {/* LIST */}
       <Stack spacing={2}>
         {orders.map((order) => (
           <Card
             key={order.id}
             sx={{
-              p: 2,
-              borderRadius: 4,
               display: 'flex',
-              alignItems: 'center',
-              gap: 2,
-              backdropFilter: 'blur(10px)',
-              background: 'rgba(255,255,255,0.85)',
-              transition: '0.3s',
-
-              '&:hover': {
-                transform: 'translateY(-5px)',
-                boxShadow: '0 15px 40px rgba(0,0,0,0.1)'
-              }
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'flex-start' : 'center',
+              p: 2,
+              gap: 2
             }}
           >
-            {/* ICON */}
-            <Avatar sx={{ bgcolor: theme.palette.primary.main }}>
+            <Avatar>
               <ShoppingCartIcon />
             </Avatar>
 
-            {/* INFO */}
-            <Box flex={1}>
+            <Box flex={1} width="100%">
               <Typography fontWeight={600}>{order.orderNumber}</Typography>
+              <Typography variant="body2">👤 {order.customerName}</Typography>
+              <Typography variant="body2">💰 ${order.total}</Typography>
+              <Typography variant="body2">📅 {order.createdAt}</Typography>
 
-              <Typography variant="body2" color="text.secondary">
-                👤 {order.customerName}
-              </Typography>
-
-              <Typography variant="body2" color="text.secondary">
-                💰 ${order.total}
-              </Typography>
-
-              <Typography variant="body2" color="text.secondary">
-                📅 {order.createdAt}
-              </Typography>
-
-              {/* STATUS */}
-              <Chip
-                label={order.status}
-                color={order.status === 'delivered' ? 'success' : order.status === 'processing' ? 'cancelled' : 'default'}
-                size="small"
-                sx={{ mt: 1 }}
-              />
+              <Chip label={order.status} size="small" sx={{ mt: 1 }} variant="outlined" />
             </Box>
 
-            {/* ACTIONS */}
-            <Stack direction="row" spacing={1}>
-              <Button variant="outlined" startIcon={<EditIcon />} sx={{ borderRadius: 3 }} onClick={() => handleEditOpen(order)}>
+            <Stack direction={isMobile ? 'column' : 'row'} spacing={1} width={isMobile ? '100%' : 'auto'}>
+              <Button fullWidth={isMobile} variant="outlined" startIcon={<EditIcon />} onClick={() => handleEditOpen(order)}>
                 Edit
               </Button>
 
               <Button
-                variant="contained"
+                fullWidth={isMobile}
                 color="error"
+                variant="contained"
                 startIcon={<DeleteIcon />}
-                sx={{ borderRadius: 3 }}
                 onClick={() => handleDelete(order.id)}
               >
                 Delete
@@ -172,21 +128,13 @@ export default function Orders() {
           </Card>
         ))}
       </Stack>
-
-      {/* MODAL */}
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth>
         <DialogTitle>Edit Order</DialogTitle>
 
         <DialogContent>
           <Stack spacing={2} mt={1}>
-            <TextField
-              label="Customer Name"
-              value={form.shippingName}
-              onChange={(e) => setForm({ ...form, shippingName: e.target.value })}
-            />
-
+            <TextField label="Name" value={form.shippingName} onChange={(e) => setForm({ ...form, shippingName: e.target.value })} />
             <TextField label="Phone" value={form.shippingPhone} onChange={(e) => setForm({ ...form, shippingPhone: e.target.value })} />
-
             <TextField
               label="Address"
               value={form.shippingAddress}
@@ -196,7 +144,7 @@ export default function Orders() {
             <TextField select label="Status" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
               <MenuItem value="pending">Pending</MenuItem>
               <MenuItem value="processing">Processing</MenuItem>
-              <MenuItem value="delivered">delivered</MenuItem>
+              <MenuItem value="delivered">Delivered</MenuItem>
             </TextField>
           </Stack>
         </DialogContent>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Stack, Card, Avatar, Button, Chip } from '@mui/material';
+import { Box, Typography, Stack, Card, Avatar, Button, Chip, useMediaQuery } from '@mui/material';
 
 import DeleteIcon from '@mui/icons-material/Delete';
 import StorefrontIcon from '@mui/icons-material/Storefront';
@@ -11,6 +11,7 @@ import { useGetVendorsQuery, useDeleteVendorMutation } from '../../redux/feature
 
 export default function Vendors() {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const { data, isLoading, refetch } = useGetVendorsQuery();
   const [deleteVendor] = useDeleteVendorMutation();
@@ -33,17 +34,20 @@ export default function Vendors() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', p: 3, background: theme.palette.grey[50] }}>
-      {/* HEADER */}
-      <Stack direction="row" justifyContent="space-between" mb={4}>
-        <Typography variant="h4" fontWeight={700}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        p: isMobile ? 2 : 3,
+        background: theme.palette.grey[50]
+      }}
+    >
+      <Stack direction={isMobile ? 'column' : 'row'} spacing={2} justifyContent="space-between" mb={4}>
+        <Typography variant={isMobile ? 'h5' : 'h4'} fontWeight={700}>
           🏪 Vendors
         </Typography>
 
-        <Chip label={`${vendors.length} vendors`} color="primary" />
+        <Chip label={`${vendors.length} vendors`} color="primary" variant="outlined" />
       </Stack>
-
-      {/* LIST */}
       <Stack spacing={2}>
         {vendors.map((vendor) => (
           <Card
@@ -52,7 +56,8 @@ export default function Vendors() {
               p: 2,
               borderRadius: 4,
               display: 'flex',
-              alignItems: 'center',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'flex-start' : 'center',
               gap: 2,
               transition: '0.3s',
 
@@ -62,12 +67,11 @@ export default function Vendors() {
               }
             }}
           >
-            {/* LOGO */}
             <Avatar
               src={vendor.logo}
               sx={{
-                width: 70,
-                height: 70,
+                width: isMobile ? 60 : 70,
+                height: isMobile ? 60 : 70,
                 borderRadius: 3,
                 bgcolor: theme.palette.grey[200]
               }}
@@ -75,18 +79,15 @@ export default function Vendors() {
               <StorefrontIcon />
             </Avatar>
 
-            {/* CONTENT */}
-            <Box flex={1}>
-              {/* NAME */}
-              <Typography fontWeight={700} fontSize={18}>
+            <Box flex={1} width="100%">
+              <Typography fontWeight={700} fontSize={isMobile ? 16 : 18}>
                 {vendor.shopNameEn}
               </Typography>
 
-              <Typography fontSize={14} color="text.secondary">
+              <Typography fontSize={13} color="text.secondary">
                 {vendor.shopNameAr}
               </Typography>
 
-              {/* DESCRIPTION */}
               <Typography mt={1} fontSize={13}>
                 {vendor.descriptionEn}
               </Typography>
@@ -95,15 +96,14 @@ export default function Vendors() {
                 {vendor.descriptionAr}
               </Typography>
 
-              {/* PHONE */}
               <Stack direction="row" alignItems="center" gap={1} mt={1}>
                 <PhoneIcon fontSize="small" />
                 <Typography fontSize={13}>{vendor.phoneNumber}</Typography>
               </Stack>
             </Box>
 
-            {/* ACTION */}
             <Button
+              fullWidth={isMobile}
               variant="contained"
               color="error"
               startIcon={<DeleteIcon />}

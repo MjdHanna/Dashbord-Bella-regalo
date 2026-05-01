@@ -11,10 +11,18 @@ import {
   useUpdateOccasionMutation,
   useDeleteOccasionMutation
 } from '../../redux/features/services/baseApi';
+
 import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
+
 export default function Occasions() {
-  const { data, isLoading } = useGetOccasionsQuery();
   const theme = useTheme();
+
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+
+  const { data, isLoading } = useGetOccasionsQuery();
+
   const [createOccasion] = useCreateOccasionMutation();
   const [updateOccasion] = useUpdateOccasionMutation();
   const [deleteOccasion] = useDeleteOccasionMutation();
@@ -30,7 +38,6 @@ export default function Occasions() {
     image: null
   });
 
-  // ================= INPUT =================
   const handleChange = (e) => {
     if (e.target.name === 'image') {
       setForm({ ...form, image: e.target.files[0] });
@@ -39,7 +46,6 @@ export default function Occasions() {
     }
   };
 
-  // ================= OPEN =================
   const handleOpen = (item = null) => {
     setEditing(item);
 
@@ -64,7 +70,6 @@ export default function Occasions() {
     setOpen(true);
   };
 
-  // ================= SAVE =================
   const handleSubmit = async () => {
     const formData = new FormData();
 
@@ -86,7 +91,6 @@ export default function Occasions() {
     }
   };
 
-  // ================= DELETE =================
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure?')) return;
 
@@ -100,83 +104,60 @@ export default function Occasions() {
   if (isLoading) return <p>Loading...</p>;
 
   return (
-    <Box p={3}>
-      {/* HEADER */}
-      <Stack direction="row" justifyContent="space-between" mb={4}>
-        <Typography variant="h4" fontWeight={700}>
+    <Box p={isMobile ? 2 : 3}>
+      <Stack direction={isMobile ? 'column' : 'row'} justifyContent="space-between" spacing={isMobile ? 2 : 0} mb={4}>
+        <Typography variant={isMobile ? 'h5' : 'h4'} fontWeight={700}>
           🎉 Occasions
         </Typography>
 
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpen()}
-          sx={{
-            borderRadius: 3,
-            px: 3,
-            background: '#2C687B'
-          }}
-        >
+        <Button fullWidth={isMobile} variant="contained" startIcon={<AddIcon />} onClick={() => handleOpen()} sx={{ borderRadius: 3 }}>
           Add Occasion
         </Button>
       </Stack>
 
-      {/* LIST */}
       <Stack spacing={2}>
         {data?.data?.map((item) => (
           <Card
             key={item.id}
             sx={{
               display: 'flex',
-              alignItems: 'center',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'flex-start' : 'center',
               p: 2,
-              borderRadius: 4,
-              transition: '0.3s',
-              '&:hover': {
-                transform: 'translateY(-3px)',
-                boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
-              }
+              borderRadius: 4
             }}
           >
-            {/* IMAGE */}
             <Avatar
               src={item.image}
               variant="rounded"
               sx={{
-                background: theme.palette.primary.main,
-                width: 90,
-                height: 90,
-                mr: 2
+                width: isMobile ? 70 : 90,
+                height: isMobile ? 70 : 90,
+                mb: isMobile ? 2 : 0,
+                mr: isMobile ? 0 : 2
               }}
             />
 
-            {/* CONTENT */}
-            <Box flex={1}>
-              <Typography variant="h6" fontWeight={600}>
+            <Box flex={1} width="100%">
+              <Typography fontWeight={600}>
                 {item.nameEn} / {item.nameAr}
               </Typography>
 
-              <Typography variant="body2" color="text.secondary">
-                {item.descriptionEn}
-              </Typography>
-
-              <Typography variant="body2" color="text.secondary">
-                {item.descriptionAr}
-              </Typography>
+              <Typography variant="body2">{item.descriptionEn}</Typography>
+              <Typography variant="body2">{item.descriptionAr}</Typography>
             </Box>
 
-            {/* ACTIONS */}
-            <Stack direction="row" spacing={1}>
-              <Button variant="outlined" startIcon={<EditIcon />} onClick={() => handleOpen(item)} sx={{ borderRadius: 3 }}>
+            <Stack direction={isMobile ? 'column' : 'row'} spacing={1} width={isMobile ? '100%' : 'auto'} mt={isMobile ? 2 : 0}>
+              <Button fullWidth={isMobile} variant="outlined" startIcon={<EditIcon />} onClick={() => handleOpen(item)}>
                 Edit
               </Button>
 
               <Button
+                fullWidth={isMobile}
                 variant="contained"
                 color="error"
                 startIcon={<DeleteIcon />}
                 onClick={() => handleDelete(item.id)}
-                sx={{ borderRadius: 3 }}
               >
                 Delete
               </Button>
@@ -184,41 +165,6 @@ export default function Occasions() {
           </Card>
         ))}
       </Stack>
-
-      {/* MODAL */}
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>{editing ? 'Edit Occasion' : 'Add Occasion'}</DialogTitle>
-
-        <DialogContent>
-          <TextField fullWidth label="Name EN" name="nameEn" value={form.nameEn} onChange={handleChange} sx={{ mb: 2 }} />
-          <TextField fullWidth label="Name AR" name="nameAr" value={form.nameAr} onChange={handleChange} sx={{ mb: 2 }} />
-          <TextField
-            fullWidth
-            label="Description EN"
-            name="descriptionEn"
-            value={form.descriptionEn}
-            onChange={handleChange}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            fullWidth
-            label="Description AR"
-            name="descriptionAr"
-            value={form.descriptionAr}
-            onChange={handleChange}
-            sx={{ mb: 2 }}
-          />
-
-          <input type="file" name="image" onChange={handleChange} />
-        </DialogContent>
-
-        <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSubmit}>
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 }

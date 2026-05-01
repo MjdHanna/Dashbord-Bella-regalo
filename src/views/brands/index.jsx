@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Box, Button, Card, Typography, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Stack, Avatar } from '@mui/material';
 
 import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -16,6 +17,8 @@ import {
 
 export default function Brands() {
   const theme = useTheme();
+
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const { data, isLoading } = useGetBrandsQuery();
 
@@ -34,18 +37,7 @@ export default function Brands() {
     logo: null
   });
 
-  // ✅ حل المشكلة هنا
   const brands = Array.isArray(data?.data) ? data.data : [];
-
-  const resetForm = () => {
-    setForm({
-      nameEn: '',
-      nameAr: '',
-      descriptionEn: '',
-      descriptionAr: '',
-      logo: null
-    });
-  };
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -69,16 +61,16 @@ export default function Brands() {
         logo: null
       });
     } else {
-      resetForm();
+      setForm({
+        nameEn: '',
+        nameAr: '',
+        descriptionEn: '',
+        descriptionAr: '',
+        logo: null
+      });
     }
 
     setOpen(true);
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-    setEditing(null);
-    resetForm();
   };
 
   const handleSubmit = async () => {
@@ -95,14 +87,15 @@ export default function Brands() {
         await createBrand(formData).unwrap();
       }
 
-      handleClose();
+      setOpen(false);
+      setEditing(null);
     } catch (err) {
       console.error(err);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this brand?')) return;
+    if (!window.confirm('Delete this brand?')) return;
 
     try {
       await deleteBrand(id).unwrap();
@@ -111,45 +104,16 @@ export default function Brands() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <Box p={3}>
-        <Typography>Loading...</Typography>
-      </Box>
-    );
-  }
-
-  if (!brands.length) {
-    return (
-      <Box p={3}>
-        <Typography>No brands found</Typography>
-      </Box>
-    );
-  }
+  if (isLoading) return <Typography p={3}>Loading...</Typography>;
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        backgroundColor: theme.palette.grey[50],
-        p: 3
-      }}
-    >
-      <Stack direction="row" justifyContent="space-between" mb={4}>
-        <Typography variant="h4" fontWeight={700}>
+    <Box p={isMobile ? 2 : 3}>
+      <Stack direction={isMobile ? 'column' : 'row'} justifyContent="space-between" spacing={2} mb={4}>
+        <Typography variant={isMobile ? 'h5' : 'h4'} fontWeight={700}>
           🏷️ Brands
         </Typography>
 
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpen()}
-          sx={{
-            borderRadius: 3,
-            px: 3,
-            background: theme.palette.primary.main
-          }}
-        >
+        <Button fullWidth={isMobile} variant="contained" startIcon={<AddIcon />} onClick={() => handleOpen()}>
           Add Brand
         </Button>
       </Stack>
@@ -160,52 +124,43 @@ export default function Brands() {
             key={item.id}
             sx={{
               display: 'flex',
-              alignItems: 'center',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'flex-start' : 'center',
               p: 2,
-              borderRadius: 4,
-              transition: '0.3s',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: '0 12px 30px rgba(0,0,0,0.1)'
-              }
+              borderRadius: 4
             }}
           >
             <Avatar
               src={item.logo}
               variant="rounded"
               sx={{
-                width: 90,
-                height: 90,
-                mr: 2,
-                background: theme.palette.secondary.main
+                width: isMobile ? 70 : 90,
+                height: isMobile ? 70 : 90,
+                mb: isMobile ? 2 : 0,
+                mr: isMobile ? 0 : 2
               }}
             />
 
-            <Box flex={1}>
-              <Typography variant="h6" fontWeight={600}>
+            <Box flex={1} width="100%">
+              <Typography fontWeight={600}>
                 {item.nameEn} / {item.nameAr}
               </Typography>
 
-              <Typography variant="body2" color="text.secondary">
-                {item.descriptionEn}
-              </Typography>
-
-              <Typography variant="body2" color="text.secondary">
-                {item.descriptionAr}
-              </Typography>
+              <Typography variant="body2">{item.descriptionEn}</Typography>
+              <Typography variant="body2">{item.descriptionAr}</Typography>
             </Box>
 
-            <Stack direction="row" spacing={1}>
-              <Button variant="outlined" startIcon={<EditIcon />} onClick={() => handleOpen(item)} sx={{ borderRadius: 3 }}>
+            <Stack direction={isMobile ? 'column' : 'row'} spacing={1} width={isMobile ? '100%' : 'auto'} mt={isMobile ? 2 : 0}>
+              <Button fullWidth={isMobile} variant="outlined" startIcon={<EditIcon />} onClick={() => handleOpen(item)}>
                 Edit
               </Button>
 
               <Button
+                fullWidth={isMobile}
                 variant="contained"
                 color="error"
                 startIcon={<DeleteIcon />}
                 onClick={() => handleDelete(item.id)}
-                sx={{ borderRadius: 3 }}
               >
                 Delete
               </Button>
@@ -213,44 +168,6 @@ export default function Brands() {
           </Card>
         ))}
       </Stack>
-
-      <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-        <DialogTitle>{editing ? 'Edit Brand' : 'Add Brand'}</DialogTitle>
-
-        <DialogContent>
-          <TextField fullWidth label="Name EN" name="nameEn" value={form.nameEn} onChange={handleChange} sx={{ mb: 2 }} />
-
-          <TextField fullWidth label="Name AR" name="nameAr" value={form.nameAr} onChange={handleChange} sx={{ mb: 2 }} />
-
-          <TextField
-            fullWidth
-            label="Description EN"
-            name="descriptionEn"
-            value={form.descriptionEn}
-            onChange={handleChange}
-            sx={{ mb: 2 }}
-          />
-
-          <TextField
-            fullWidth
-            label="Description AR"
-            name="descriptionAr"
-            value={form.descriptionAr}
-            onChange={handleChange}
-            sx={{ mb: 2 }}
-          />
-
-          <input type="file" name="logo" onChange={handleChange} />
-        </DialogContent>
-
-        <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
-
-          <Button variant="contained" onClick={handleSubmit}>
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 }

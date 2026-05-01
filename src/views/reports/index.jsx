@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Card, Typography, Stack, Button, Avatar, Chip } from '@mui/material';
+import { Box, Card, Typography, Stack, Button, Avatar, Chip, useMediaQuery } from '@mui/material';
 
 import DeleteIcon from '@mui/icons-material/Delete';
 import EmailIcon from '@mui/icons-material/Email';
@@ -11,6 +11,7 @@ import { useGetMessagesQuery, useDeleteMessageMutation, useMarkMessageAsReadMuta
 
 export default function Reports() {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const { data, isLoading, refetch } = useGetMessagesQuery();
   const [deleteMessage] = useDeleteMessageMutation();
@@ -20,41 +21,26 @@ export default function Reports() {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this message?')) return;
-
-    try {
-      await deleteMessage(id).unwrap();
-    } catch (err) {
-      console.error(err);
-    }
+    await deleteMessage(id);
   };
 
   const handleRead = async (item) => {
     if (item.isRead === '1') return;
-
-    try {
-      await markAsRead(item.id).unwrap();
-      refetch(); 
-    } catch (err) {
-      console.error(err);
-    }
+    await markAsRead(item.id);
+    refetch();
   };
 
-  if (isLoading) {
-    return <Typography p={3}>Loading messages...</Typography>;
-  }
+  if (isLoading) return <Typography p={3}>Loading messages...</Typography>;
 
   return (
-    <Box sx={{ minHeight: '100vh', p: 3, background: theme.palette.grey[50] }}>
-      {/* HEADER */}
-      <Stack direction="row" justifyContent="space-between" mb={4}>
-        <Typography variant="h4" fontWeight={700}>
+    <Box sx={{ minHeight: '100vh', p: isMobile ? 2 : 3, background: theme.palette.grey[50] }}>
+      <Stack direction={isMobile ? 'column' : 'row'} spacing={2} justifyContent="space-between" mb={4}>
+        <Typography variant={isMobile ? 'h5' : 'h4'} fontWeight={700}>
           📩 Reports / Messages
         </Typography>
 
-        <Chip label={`${messages.length} messages`} color="primary" />
+        <Chip label={`${messages.length} messages`} color="primary" variant="outlined" />
       </Stack>
-
-      {/* LIST */}
       <Stack spacing={2}>
         {messages.map((item) => {
           const isRead = Number(item.isRead) === 1;
@@ -66,28 +52,18 @@ export default function Reports() {
                 p: 2,
                 borderRadius: 4,
                 display: 'flex',
-                alignItems: 'center',
+                flexDirection: isMobile ? 'column' : 'row',
+                alignItems: isMobile ? 'flex-start' : 'center',
                 gap: 2,
-                cursor: 'pointer',
-                transition: '0.3s',
-
                 background: isRead ? '#fff' : '#fff8e1',
-                border: isRead ? '1px solid #eee' : '2px solid #ffcc80',
-
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: '0 12px 30px rgba(0,0,0,0.1)'
-                }
+                border: isRead ? '1px solid #eee' : '2px solid #ffcc80'
               }}
             >
-              {/* ICON */}
               <Avatar sx={{ bgcolor: isRead ? theme.palette.primary.main : '#ff9800' }}>
                 <EmailIcon />
               </Avatar>
 
-              {/* CONTENT */}
-              <Box flex={1}>
-                {/* USER */}
+              <Box flex={1} width="100%">
                 <Stack direction="row" alignItems="center" gap={1}>
                   <PersonIcon fontSize="small" />
                   <Typography fontWeight={600}>{item.userName}</Typography>
@@ -95,7 +71,6 @@ export default function Reports() {
                   <Chip label={isRead ? 'Read' : 'Unread'} size="small" color={isRead ? 'success' : 'warning'} />
                 </Stack>
 
-                {/* CONTACT */}
                 <Typography variant="body2" color="text.secondary">
                   📧 {item.email}
                 </Typography>
@@ -104,50 +79,32 @@ export default function Reports() {
                   📞 {item.phoneNumber}
                 </Typography>
 
-                {/* SUBJECT */}
                 <Typography variant="subtitle2" mt={1} fontWeight={600}>
                   {item.subject}
                 </Typography>
 
-                {/* MESSAGE */}
                 <Typography variant="body2" mt={1}>
                   {item.message}
                 </Typography>
 
-                {/* DATE */}
                 <Typography variant="caption" color="text.secondary">
                   {item.createdAt}
                 </Typography>
               </Box>
 
-              {/* DELETE */}
-              {/* ACTIONS */}
-              <Stack direction="row" spacing={1}>
-                {/* MARK AS READ */}
+              <Stack direction={isMobile ? 'column' : 'row'} spacing={1} width={isMobile ? '100%' : 'auto'}>
                 {!isRead && (
-                  <Button
-                    variant="outlined"
-                    color="success"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRead(item);
-                    }}
-                    sx={{ borderRadius: 3 }}
-                  >
+                  <Button fullWidth={isMobile} variant="outlined" color="success" onClick={() => handleRead(item)}>
                     Mark as Read
                   </Button>
                 )}
 
-                {/* DELETE */}
                 <Button
+                  fullWidth={isMobile}
                   variant="contained"
                   color="error"
                   startIcon={<DeleteIcon />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(item.id);
-                  }}
-                  sx={{ borderRadius: 3 }}
+                  onClick={() => handleDelete(item.id)}
                 >
                   Delete
                 </Button>

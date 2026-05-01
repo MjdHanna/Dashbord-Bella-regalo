@@ -1,5 +1,18 @@
 import React, { useState } from 'react';
-import { Box, Button, Card, Typography, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Stack, Avatar } from '@mui/material';
+import {
+  Box,
+  Button,
+  Card,
+  Typography,
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Stack,
+  Avatar,
+  useMediaQuery
+} from '@mui/material';
 
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -16,6 +29,7 @@ import {
 
 export default function Categories() {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const { data, isLoading } = useGetCategoriesQuery();
 
@@ -34,7 +48,6 @@ export default function Categories() {
     image: null
   });
 
-  // ✅ حماية من شكل البيانات
   const categories = Array.isArray(data?.data) ? data.data : [];
 
   const resetForm = () => {
@@ -49,7 +62,6 @@ export default function Categories() {
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
-
     if (name === 'image') {
       setForm((prev) => ({ ...prev, image: files[0] }));
     } else {
@@ -59,7 +71,6 @@ export default function Categories() {
 
   const handleOpen = (item = null) => {
     setEditing(item);
-
     if (item) {
       setForm({
         nameEn: item.nameEn,
@@ -71,7 +82,6 @@ export default function Categories() {
     } else {
       resetForm();
     }
-
     setOpen(true);
   };
 
@@ -83,7 +93,6 @@ export default function Categories() {
 
   const handleSubmit = async () => {
     const formData = new FormData();
-
     Object.entries(form).forEach(([key, value]) => {
       if (value) formData.append(key, value);
     });
@@ -94,101 +103,73 @@ export default function Categories() {
       } else {
         await createCategory(formData).unwrap();
       }
-
       handleClose();
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure?')) return;
-
-    try {
-      await deleteCategory(id).unwrap();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  if (isLoading) {
-    return <Typography p={3}>Loading...</Typography>;
-  }
+  if (isLoading) return <Typography p={3}>Loading...</Typography>;
 
   return (
-    <Box sx={{ minHeight: '100vh', background: theme.palette.grey[50], p: 3 }}>
-      {/* HEADER */}
-      <Stack direction="row" justifyContent="space-between" mb={4}>
+    <Box sx={{ minHeight: '100vh', background: theme.palette.grey[50], p: isMobile ? 2 : 3 }}>
+      <Stack direction={isMobile ? 'column' : 'row'} spacing={2} justifyContent="space-between" mb={4}>
         <Typography variant="h4" fontWeight={700}>
           📂 Categories
         </Typography>
 
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpen()} sx={{ borderRadius: 3, px: 3 }}>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpen()} fullWidth={isMobile}>
           Add Category
         </Button>
       </Stack>
-
-      {/* LIST */}
       <Stack spacing={2}>
         {categories.map((item) => (
           <Card
             key={item.id}
             sx={{
               display: 'flex',
-              alignItems: 'center',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'flex-start' : 'center',
+              gap: 2,
               p: 2,
-              borderRadius: 4,
-              transition: '0.3s',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: '0 12px 30px rgba(0,0,0,0.1)'
-              }
+              borderRadius: 4
             }}
           >
-            <Avatar src={item.image} variant="rounded" sx={{ width: 90, height: 90, mr: 2 }} />
+            <Avatar
+              src={item.image}
+              variant="rounded"
+              sx={{
+                width: isMobile ? 60 : 90,
+                height: isMobile ? 60 : 90
+              }}
+            />
 
-            <Box flex={1}>
-              <Typography variant="h6" fontWeight={600}>
+            <Box flex={1} width="100%">
+              <Typography variant="h6">
                 {item.nameEn} / {item.nameAr}
               </Typography>
-
-              <Typography variant="body2" color="text.secondary">
-                {item.descriptionEn}
-              </Typography>
-
-              <Typography variant="body2" color="text.secondary">
-                {item.descriptionAr}
-              </Typography>
+              <Typography variant="body2">{item.descriptionEn}</Typography>
+              <Typography variant="body2">{item.descriptionAr}</Typography>
             </Box>
 
-            <Stack direction="row" spacing={1}>
-              <Button variant="outlined" startIcon={<EditIcon />} onClick={() => handleOpen(item)} sx={{ borderRadius: 3 }}>
+            <Stack direction={isMobile ? 'column' : 'row'} spacing={1} width={isMobile ? '100%' : 'auto'}>
+              <Button fullWidth={isMobile} variant="outlined" startIcon={<EditIcon />} onClick={() => handleOpen(item)}>
                 Edit
               </Button>
 
-              <Button
-                variant="contained"
-                color="error"
-                startIcon={<DeleteIcon />}
-                onClick={() => handleDelete(item.id)}
-                sx={{ borderRadius: 3 }}
-              >
+              <Button fullWidth={isMobile} variant="contained" color="error" startIcon={<DeleteIcon />}>
                 Delete
               </Button>
             </Stack>
           </Card>
         ))}
       </Stack>
-
-      {/* DIALOG */}
       <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
         <DialogTitle>{editing ? 'Edit Category' : 'Add Category'}</DialogTitle>
 
         <DialogContent>
           <TextField fullWidth label="Name EN" name="nameEn" value={form.nameEn} onChange={handleChange} sx={{ mb: 2 }} />
-
           <TextField fullWidth label="Name AR" name="nameAr" value={form.nameAr} onChange={handleChange} sx={{ mb: 2 }} />
-
           <TextField
             fullWidth
             label="Description EN"
@@ -197,7 +178,6 @@ export default function Categories() {
             onChange={handleChange}
             sx={{ mb: 2 }}
           />
-
           <TextField
             fullWidth
             label="Description AR"
@@ -206,13 +186,11 @@ export default function Categories() {
             onChange={handleChange}
             sx={{ mb: 2 }}
           />
-
           <input type="file" name="image" onChange={handleChange} />
         </DialogContent>
 
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
-
           <Button variant="contained" onClick={handleSubmit}>
             Save
           </Button>

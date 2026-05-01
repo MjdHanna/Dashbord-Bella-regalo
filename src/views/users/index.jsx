@@ -11,7 +11,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField
+  TextField,
+  useMediaQuery
 } from '@mui/material';
 
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -24,6 +25,7 @@ import { useGetUsersQuery, useDeleteUserMutation, useUpdateUserMutation } from '
 
 export default function Users() {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const { data, isLoading } = useGetUsersQuery();
   const [deleteUser] = useDeleteUserMutation();
@@ -35,74 +37,47 @@ export default function Users() {
 
   const users = Array.isArray(data?.data) ? data.data : [];
 
-  // ================= DELETE =================
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this user?')) return;
-
-    try {
-      await deleteUser(id).unwrap();
-    } catch (err) {
-      console.error(err);
-    }
+    await deleteUser(id);
   };
 
-  // ================= OPEN EDIT =================
   const handleOpenEdit = (user) => {
-    setSelectedUser({
-      ...user,
-      originalEmail: user.email // مهم 🔥
-    });
-
+    setSelectedUser({ ...user, originalEmail: user.email });
     setPassword('');
     setOpen(true);
   };
 
-  // ================= UPDATE =================
   const handleUpdate = async () => {
-    try {
-      const formData = new FormData();
+    const formData = new FormData();
 
-      formData.append('name', selectedUser.name);
-      formData.append('phoneNumber', selectedUser.phoneNumber || '');
-      formData.append('gender', selectedUser.gender || '');
+    formData.append('name', selectedUser.name);
+    formData.append('phoneNumber', selectedUser.phoneNumber || '');
+    formData.append('gender', selectedUser.gender || '');
 
-      // ✅ لا ترسل الإيميل إلا إذا تغير
-      if (selectedUser.email !== selectedUser.originalEmail) {
-        formData.append('email', selectedUser.email);
-      }
-
-      // ✅ لا ترسل الباسورد إلا إذا تم إدخاله
-      if (password) {
-        formData.append('password', password);
-      }
-
-      await updateUser({
-        id: selectedUser.id,
-        formData
-      }).unwrap();
-
-      setOpen(false);
-    } catch (err) {
-      console.error(err);
+    if (selectedUser.email !== selectedUser.originalEmail) {
+      formData.append('email', selectedUser.email);
     }
+
+    if (password) {
+      formData.append('password', password);
+    }
+
+    await updateUser({ id: selectedUser.id, formData });
+    setOpen(false);
   };
 
-  if (isLoading) {
-    return <Typography p={3}>Loading users...</Typography>;
-  }
+  if (isLoading) return <Typography p={3}>Loading users...</Typography>;
 
   return (
-    <Box sx={{ minHeight: '100vh', p: 3, background: '#f5f7fa' }}>
-      {/* HEADER */}
-      <Stack direction="row" justifyContent="space-between" mb={4}>
-        <Typography variant="h4" fontWeight={700}>
+    <Box sx={{ minHeight: '100vh', p: isMobile ? 2 : 3, background: '#f5f7fa' }}>
+      <Stack direction={isMobile ? 'column' : 'row'} spacing={2} justifyContent="space-between" mb={4}>
+        <Typography variant={isMobile ? 'h5' : 'h4'} fontWeight={700}>
           👥 Users Management
         </Typography>
 
-        <Chip label={`${users.length} users`} color="primary" />
+        <Chip label={`${users.length} users`} color="primary" variant="outlined" />
       </Stack>
-
-      {/* USERS LIST */}
       <Stack spacing={2}>
         {users.map((user) => (
           <Card
@@ -111,51 +86,35 @@ export default function Users() {
               p: 2,
               borderRadius: 4,
               display: 'flex',
-              alignItems: 'center',
-              gap: 2,
-              transition: '0.3s',
-              backdropFilter: 'blur(10px)',
-              background: 'rgba(255,255,255,0.85)',
-
-              '&:hover': {
-                transform: 'translateY(-5px)',
-                boxShadow: '0 15px 40px rgba(0,0,0,0.1)'
-              }
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'flex-start' : 'center',
+              gap: 2
             }}
           >
-            {/* AVATAR */}
             <Avatar sx={{ bgcolor: theme.palette.primary.main }}>
               <PersonIcon />
             </Avatar>
 
-            {/* INFO */}
-            <Box flex={1}>
+            <Box flex={1} width="100%">
               <Typography fontWeight={600}>{user.name || 'No Name'}</Typography>
 
-              <Typography variant="body2" color="text.secondary">
-                📧 {user.email}
-              </Typography>
+              <Typography variant="body2">📧 {user.email}</Typography>
 
-              {user.phoneNumber && (
-                <Typography variant="body2" color="text.secondary">
-                  📞 {user.phoneNumber}
-                </Typography>
-              )}
+              {user.phoneNumber && <Typography variant="body2">📞 {user.phoneNumber}</Typography>}
 
               {user.gender && <Chip label={user.gender} size="small" sx={{ mt: 1 }} />}
             </Box>
 
-            {/* ACTIONS */}
-            <Stack direction="row" spacing={1}>
-              <Button variant="outlined" startIcon={<EditIcon />} sx={{ borderRadius: 3 }} onClick={() => handleOpenEdit(user)}>
+            <Stack direction={isMobile ? 'column' : 'row'} spacing={1} width={isMobile ? '100%' : 'auto'}>
+              <Button fullWidth={isMobile} variant="outlined" startIcon={<EditIcon />} onClick={() => handleOpenEdit(user)}>
                 Edit
               </Button>
 
               <Button
+                fullWidth={isMobile}
                 variant="contained"
                 color="error"
                 startIcon={<DeleteIcon />}
-                sx={{ borderRadius: 3 }}
                 onClick={() => handleDelete(user.id)}
               >
                 Delete
@@ -164,9 +123,7 @@ export default function Users() {
           </Card>
         ))}
       </Stack>
-
-      {/* ================= EDIT MODAL ================= */}
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth>
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm" fullScreen={isMobile}>
         <DialogTitle>Edit User</DialogTitle>
 
         <DialogContent>
@@ -175,12 +132,7 @@ export default function Users() {
             label="Name"
             margin="normal"
             value={selectedUser?.name || ''}
-            onChange={(e) =>
-              setSelectedUser({
-                ...selectedUser,
-                name: e.target.value
-              })
-            }
+            onChange={(e) => setSelectedUser({ ...selectedUser, name: e.target.value })}
           />
 
           <TextField
@@ -188,12 +140,7 @@ export default function Users() {
             label="Email"
             margin="normal"
             value={selectedUser?.email || ''}
-            onChange={(e) =>
-              setSelectedUser({
-                ...selectedUser,
-                email: e.target.value
-              })
-            }
+            onChange={(e) => setSelectedUser({ ...selectedUser, email: e.target.value })}
           />
 
           <TextField
@@ -201,12 +148,7 @@ export default function Users() {
             label="Phone"
             margin="normal"
             value={selectedUser?.phoneNumber || ''}
-            onChange={(e) =>
-              setSelectedUser({
-                ...selectedUser,
-                phoneNumber: e.target.value
-              })
-            }
+            onChange={(e) => setSelectedUser({ ...selectedUser, phoneNumber: e.target.value })}
           />
 
           <TextField
@@ -214,15 +156,9 @@ export default function Users() {
             label="Gender"
             margin="normal"
             value={selectedUser?.gender || ''}
-            onChange={(e) =>
-              setSelectedUser({
-                ...selectedUser,
-                gender: e.target.value
-              })
-            }
+            onChange={(e) => setSelectedUser({ ...selectedUser, gender: e.target.value })}
           />
 
-          {/* ✅ PASSWORD FIELD */}
           <TextField
             fullWidth
             label="New Password"
@@ -230,14 +166,14 @@ export default function Users() {
             margin="normal"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            helperText="Leave empty if you don't want to change password"
           />
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
-
-          <Button variant="contained" onClick={handleUpdate}>
+          <Button fullWidth={isMobile} onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <Button fullWidth={isMobile} variant="contained" onClick={handleUpdate}>
             Save Changes
           </Button>
         </DialogActions>

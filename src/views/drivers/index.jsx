@@ -1,5 +1,18 @@
 import React, { useState } from 'react';
-import { Box, Button, Card, Typography, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Stack, Avatar } from '@mui/material';
+import {
+  Box,
+  Button,
+  Card,
+  Typography,
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Stack,
+  Avatar,
+  useMediaQuery
+} from '@mui/material';
 
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -16,6 +29,7 @@ import {
 
 export default function Drivers() {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const { data, isLoading } = useGetDriversQuery();
 
@@ -85,13 +99,9 @@ export default function Drivers() {
 
     Object.entries(form).forEach(([key, value]) => {
       if (!value) return;
-      if (editing && key === 'email' && value === editing.email) {
-        return;
-      }
+      if (editing && key === 'email' && value === editing.email) return;
+      if (key === 'password' && !value) return;
 
-      if (key === 'password' && !value) {
-        return;
-      }
       formData.append(key, value);
     });
 
@@ -121,26 +131,31 @@ export default function Drivers() {
   if (isLoading) return <Typography p={3}>Loading...</Typography>;
 
   return (
-    <Box sx={{ minHeight: '100vh', background: theme.palette.grey[50], p: 3 }}>
-      {/* HEADER */}
-      <Stack direction="row" justifyContent="space-between" mb={4}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: theme.palette.grey[50],
+        p: isMobile ? 2 : 3
+      }}
+    >
+      <Stack direction={isMobile ? 'column' : 'row'} spacing={2} justifyContent="space-between" mb={4}>
         <Typography variant="h4" fontWeight={700}>
           🚗 Drivers
         </Typography>
 
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpen()} sx={{ borderRadius: 3, px: 3 }}>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpen()} fullWidth={isMobile}>
           Add Driver
         </Button>
       </Stack>
-
-      {/* LIST */}
       <Stack spacing={2}>
         {drivers.map((item) => (
           <Card
             key={item.id}
             sx={{
               display: 'flex',
-              alignItems: 'center',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'flex-start' : 'center',
+              gap: 2,
               p: 2,
               borderRadius: 4,
               transition: '0.3s',
@@ -150,11 +165,16 @@ export default function Drivers() {
               }
             }}
           >
-            <Avatar src={item.profileImg} sx={{ width: 70, height: 70, mr: 2 }}>
+            <Avatar
+              src={item.profileImg}
+              sx={{
+                width: isMobile ? 55 : 70,
+                height: isMobile ? 55 : 70
+              }}
+            >
               {item.name?.[0]}
             </Avatar>
-
-            <Box flex={1}>
+            <Box flex={1} width="100%">
               <Typography variant="h6" fontWeight={600}>
                 {item.name}
               </Typography>
@@ -167,9 +187,8 @@ export default function Drivers() {
                 📞 {item.phoneNumber || 'N/A'}
               </Typography>
             </Box>
-
-            <Stack direction="row" spacing={1}>
-              <Button variant="outlined" startIcon={<EditIcon />} onClick={() => handleOpen(item)} sx={{ borderRadius: 3 }}>
+            <Stack direction={isMobile ? 'column' : 'row'} spacing={1} width={isMobile ? '100%' : 'auto'}>
+              <Button variant="outlined" startIcon={<EditIcon />} fullWidth={isMobile} onClick={() => handleOpen(item)}>
                 Edit
               </Button>
 
@@ -177,8 +196,8 @@ export default function Drivers() {
                 variant="contained"
                 color="error"
                 startIcon={<DeleteIcon />}
+                fullWidth={isMobile}
                 onClick={() => handleDelete(item.id)}
-                sx={{ borderRadius: 3 }}
               >
                 Delete
               </Button>
@@ -186,8 +205,6 @@ export default function Drivers() {
           </Card>
         ))}
       </Stack>
-
-      {/* DIALOG */}
       <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
         <DialogTitle>{editing ? 'Edit Driver' : 'Add Driver'}</DialogTitle>
 
