@@ -7,15 +7,20 @@ import PhoneIcon from '@mui/icons-material/Phone';
 
 import { useTheme } from '@mui/material/styles';
 
-import { useGetVendorsQuery, useDeleteVendorMutation } from '../../redux/features/services/baseApi';
-
+import {
+  useGetVendorsQuery,
+  useDeleteVendorMutation,
+  useApproveVendorMutation,
+  useRejectVendorMutation
+} from '../../redux/features/services/baseApi';
 export default function Vendors() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const { data, isLoading, refetch } = useGetVendorsQuery();
   const [deleteVendor] = useDeleteVendorMutation();
-
+  const [approveVendor] = useApproveVendorMutation();
+  const [rejectVendor] = useRejectVendorMutation();
   const vendors = Array.isArray(data?.data) ? data.data : [];
 
   const handleDelete = async (id) => {
@@ -27,6 +32,15 @@ export default function Vendors() {
     } catch (err) {
       console.error(err);
     }
+  };
+  const handleApprove = async (id) => {
+    await approveVendor(id).unwrap();
+    refetch();
+  };
+
+  const handleReject = async (id) => {
+    await rejectVendor(id).unwrap();
+    refetch();
   };
 
   if (isLoading) {
@@ -102,16 +116,38 @@ export default function Vendors() {
               </Stack>
             </Box>
 
-            <Button
-              fullWidth={isMobile}
-              variant="contained"
-              color="error"
-              startIcon={<DeleteIcon />}
-              onClick={() => handleDelete(vendor.id)}
-              sx={{ borderRadius: 3 }}
-            >
-              Delete
-            </Button>
+            <Stack direction={isMobile ? 'column' : 'row'} spacing={1} width={isMobile ? '100%' : 'auto'}>
+              <Button
+                fullWidth={isMobile}
+                variant="contained"
+                color="success"
+                onClick={() => handleApprove(vendor.id)}
+                sx={{ borderRadius: 3 }}
+              >
+                Approve
+              </Button>
+
+              <Button
+                fullWidth={isMobile}
+                variant="outlined"
+                color="error"
+                onClick={() => handleReject(vendor.id)}
+                sx={{ borderRadius: 3 }}
+              >
+                Reject
+              </Button>
+
+              <Button
+                fullWidth={isMobile}
+                variant="contained"
+                color="error"
+                startIcon={<DeleteIcon />}
+                onClick={() => handleDelete(vendor.id)}
+                sx={{ borderRadius: 3 }}
+              >
+                Delete
+              </Button>
+            </Stack>
           </Card>
         ))}
       </Stack>

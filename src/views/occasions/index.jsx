@@ -19,7 +19,6 @@ export default function Occasions() {
   const theme = useTheme();
 
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
   const { data, isLoading } = useGetOccasionsQuery();
 

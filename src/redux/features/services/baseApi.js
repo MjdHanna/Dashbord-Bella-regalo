@@ -233,6 +233,26 @@ export const baseApi = createApi({
       }),
       invalidatesTags: ['Vendors']
     }),
+    getPendingVendors: builder.query({
+      query: () => 'admin/vendors/pending',
+      providesTags: ['Vendors']
+    }),
+
+    approveVendor: builder.mutation({
+      query: (id) => ({
+        url: `admin/vendors/${id}/approve`,
+        method: 'PATCH'
+      }),
+      invalidatesTags: ['Vendors']
+    }),
+
+    rejectVendor: builder.mutation({
+      query: (id) => ({
+        url: `admin/vendors/${id}/reject`,
+        method: 'PATCH'
+      }),
+      invalidatesTags: ['Vendors']
+    }),
     //End Vendorssssssss
 
     // ================= DRIVERS =================
@@ -273,6 +293,7 @@ export const baseApi = createApi({
 
     getProducts: builder.query({
       query: () => 'admin/admin-products',
+      transformResponse: (response) => response.data,
       providesTags: ['Products']
     }),
 
@@ -338,6 +359,9 @@ export const {
   useGetVendorsQuery,
   useGetVendorByIdQuery,
   useDeleteVendorMutation,
+  useGetPendingVendorsQuery,
+  useApproveVendorMutation,
+  useRejectVendorMutation,
   useGetDriversQuery,
   useCreateDriverMutation,
   useUpdateDriverMutation,
