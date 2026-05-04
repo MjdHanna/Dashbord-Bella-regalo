@@ -25,7 +25,10 @@ import {
   useGetProductsQuery,
   useDeleteProductMutation,
   useUpdateProductMutation,
-  useGetVendorsQuery
+  useGetVendorsQuery,
+  useGetCategoriesQuery,
+  useGetBrandsQuery,
+  useGetOccasionsQuery
 } from '../../redux/features/services/baseApi';
 
 export default function Products() {
@@ -35,7 +38,13 @@ export default function Products() {
   const { data: products = [], isLoading } = useGetProductsQuery();
   const { data: vendorsRes } = useGetVendorsQuery();
   const vendors = vendorsRes?.data || vendorsRes || [];
+  const { data: categoriesRes } = useGetCategoriesQuery();
+  const { data: brandsRes } = useGetBrandsQuery();
+  const { data: occasionsRes } = useGetOccasionsQuery();
 
+  const categories = categoriesRes?.data || categoriesRes || [];
+  const brands = brandsRes?.data || brandsRes || [];
+  const occasions = occasionsRes?.data || occasionsRes || [];
   const [createProduct] = useCreateProductMutation();
   const [updateProduct] = useUpdateProductMutation();
   const [deleteProduct] = useDeleteProductMutation();
@@ -128,11 +137,14 @@ export default function Products() {
       });
 
       features.forEach((f, i) => {
-        if (f.key) fd.append(`features[${i}][${f.key}]`, f.value);
+        if (f.key.trim() && f.value.trim()) {
+          fd.append(`features[${i}][${f.key}]`, f.value);
+        }
       });
-
       featuresAr.forEach((f, i) => {
-        if (f.key) fd.append(`featuresAr[${i}][${f.key}]`, f.value);
+        if (f.key.trim() && f.value.trim()) {
+          fd.append(`featuresAr[${i}][${f.key}]`, f.value);
+        }
       });
 
       if (isEdit) {
@@ -152,7 +164,24 @@ export default function Products() {
       await deleteProduct(id);
     }
   };
+  const handleFeatureChange = (index, field, value, isAr = false) => {
+    const list = isAr ? [...featuresAr] : [...features];
 
+    list[index][field] = value;
+
+    isAr ? setFeaturesAr(list) : setFeatures(list);
+  };
+
+  const addFeature = (isAr = false) => {
+    isAr ? setFeaturesAr([...featuresAr, { key: '', value: '' }]) : setFeatures([...features, { key: '', value: '' }]);
+  };
+
+  const removeFeature = (index, isAr = false) => {
+    const list = isAr ? [...featuresAr] : [...features];
+    list.splice(index, 1);
+
+    isAr ? setFeaturesAr(list) : setFeatures(list);
+  };
   return (
     <Box p={isMobile ? 2 : 3}>
       <Stack direction="row" justifyContent="space-between" mb={3}>
@@ -211,18 +240,39 @@ export default function Products() {
             <TextField label="Price" name="price" value={form.price} onChange={handleChange} />
 
             <TextField label="Vendor" name="vendorId" value={form.vendorId} onChange={handleChange} />
-            <TextField label="Category ID" name="categoryId" value={form.categoryId} onChange={handleChange} />
+            <TextField select label="Category" name="categoryId" value={form.categoryId || ''} onChange={handleChange}>
+              {categories.map((cat) => (
+                <MenuItem key={cat.id} value={cat.id}>
+                  {cat.nameEn}
+                </MenuItem>
+              ))}
+            </TextField>
 
-            <TextField label="Brand ID" name="brandId" value={form.brandId} onChange={handleChange} />
+            <TextField select label="Brand" name="brandId" value={form.brandId || ''} onChange={handleChange}>
+              {brands.map((brand) => (
+                <MenuItem key={brand.id} value={brand.id}>
+                  {brand.nameEn}
+                </MenuItem>
+              ))}
+            </TextField>
             <TextField
-              label="Occasion IDs (1,2,3)"
+              select
+              label="Occasions"
+              SelectProps={{ multiple: true }}
+              value={form.occasionIds || []}
               onChange={(e) =>
                 setForm({
                   ...form,
-                  occasionIds: e.target.value.split(',')
+                  occasionIds: e.target.value
                 })
               }
-            />
+            >
+              {occasions.map((occ) => (
+                <MenuItem key={occ.id} value={occ.id}>
+                  {occ.nameEn}
+                </MenuItem>
+              ))}
+            </TextField>
 
             <input type="file" multiple onChange={(e) => setForm({ ...form, images: Array.from(e.target.files) })} />
 
@@ -264,13 +314,41 @@ export default function Products() {
               </Stack>
             ))}
 
-            <Typography>Feature EN</Typography>
-            <TextField label="weight" onChange={(e) => setFeatures([{ key: e.target.value, value: features[0].value }])} />
-            <TextField label="size" onChange={(e) => setFeatures([{ key: features[0].key, value: e.target.value }])} />
+            <Typography>Features EN</Typography>
 
-            <Typography>Feature AR</Typography>
-            <TextField label="الوزن" onChange={(e) => setFeaturesAr([{ key: e.target.value, value: featuresAr[0].value }])} />
-            <TextField label="الحجم" onChange={(e) => setFeaturesAr([{ key: featuresAr[0].key, value: e.target.value }])} />
+            {features.map((f, i) => (
+              <Stack key={i} direction="row" spacing={1}>
+                <TextField label="Key" value={f.key} onChange={(e) => handleFeatureChange(i, 'key', e.target.value)} />
+
+                <TextField label="Value" value={f.value} onChange={(e) => handleFeatureChange(i, 'value', e.target.value)} />
+
+                <Button color="error" onClick={() => removeFeature(i)}>
+                  <DeleteIcon />
+                </Button>
+              </Stack>
+            ))}
+
+            <Button startIcon={<AddIcon />} onClick={() => addFeature()}>
+              Add Feature
+            </Button>
+
+            <Typography>Features AR</Typography>
+
+            {featuresAr.map((f, i) => (
+              <Stack key={i} direction="row" spacing={1}>
+                <TextField label="المفتاح" value={f.key} onChange={(e) => handleFeatureChange(i, 'key', e.target.value, true)} />
+
+                <TextField label="القيمة" value={f.value} onChange={(e) => handleFeatureChange(i, 'value', e.target.value, true)} />
+
+                <Button color="error" onClick={() => removeFeature(i, true)}>
+                  <DeleteIcon />
+                </Button>
+              </Stack>
+            ))}
+
+            <Button startIcon={<AddIcon />} onClick={() => addFeature(true)}>
+              إضافة خاصية
+            </Button>
           </Stack>
         </DialogContent>
 
