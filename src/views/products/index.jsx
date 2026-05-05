@@ -28,20 +28,23 @@ import {
   useGetVendorsQuery,
   useGetCategoriesQuery,
   useGetBrandsQuery,
-  useGetOccasionsQuery
+  useGetOccasionsQuery,
+  useGetProductByIdQuery
 } from '../../redux/features/services/baseApi';
-
+import { useEffect } from 'react';
 export default function Products() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
+  const [currentId, setCurrentId] = useState(null);
   const { data: products = [], isLoading } = useGetProductsQuery();
   const { data: vendorsRes } = useGetVendorsQuery();
   const vendors = vendorsRes?.data || vendorsRes || [];
   const { data: categoriesRes } = useGetCategoriesQuery();
   const { data: brandsRes } = useGetBrandsQuery();
   const { data: occasionsRes } = useGetOccasionsQuery();
-
+  const { data: productDetails } = useGetProductByIdQuery(currentId, {
+    skip: !currentId
+  });
   const categories = categoriesRes?.data || categoriesRes || [];
   const brands = brandsRes?.data || brandsRes || [];
   const occasions = occasionsRes?.data || occasionsRes || [];
@@ -51,7 +54,6 @@ export default function Products() {
 
   const [open, setOpen] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
-  const [currentId, setCurrentId] = useState(null);
 
   const [form, setForm] = useState({
     nameEn: '',
@@ -70,7 +72,49 @@ export default function Products() {
 
   const [features, setFeatures] = useState([{ key: '', value: '' }]);
   const [featuresAr, setFeaturesAr] = useState([{ key: '', value: '' }]);
+  useEffect(() => {
+    if (productDetails?.data) {
+      const p = productDetails.data;
 
+      setForm({
+        nameEn: p.nameEn || '',
+        nameAr: p.nameAr || '',
+        descriptionEn: p.descriptionEn || '',
+        descriptionAr: p.descriptionAr || '',
+        price: p.price || '',
+        vendorId: p.vendor?.id || '',
+        categoryId: p.category?.id || '',
+        brandId: p.brand?.id || '',
+        occasionIds: p.occasions?.map((o) => o.id) || [],
+        images: []
+      });
+      if (p.variants?.length) {
+        setVariants(
+          p.variants.map((v) => ({
+            price: v.price || '',
+            stock: v.stockQuantity || '',
+            size: v.attributes?.size || '',
+            color: v.attributes?.color || ''
+          }))
+        );
+      }
+      if (p.features) {
+        const en = [];
+        const ar = [];
+
+        Object.entries(p.features).forEach(([key, value]) => {
+          en.push({ key, value });
+        });
+
+        Object.entries(p.featuresAr || {}).forEach(([key, value]) => {
+          ar.push({ key, value });
+        });
+
+        setFeatures(en.length ? en : [{ key: '', value: '' }]);
+        setFeaturesAr(ar.length ? ar : [{ key: '', value: '' }]);
+      }
+    }
+  }, [productDetails]);
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleOpenAdd = () => {
@@ -94,21 +138,8 @@ export default function Products() {
   const handleEdit = (p) => {
     setIsEdit(true);
     setCurrentId(p.id);
-
-    setForm({
-      nameEn: p.nameEn,
-      nameAr: p.nameAr,
-      descriptionEn: p.descriptionEn || '',
-      descriptionAr: p.descriptionAr || '',
-      price: p.price,
-      vendorId: p.vendorId || '',
-      occasionIds: p.occasions ? p.occasions.split(',') : [],
-      images: []
-    });
-
     setOpen(true);
   };
-
   const handleSubmit = async () => {
     try {
       const fd = new FormData();
@@ -117,12 +148,14 @@ export default function Products() {
       fd.append('nameAr', form.nameAr);
       fd.append('descriptionEn', form.descriptionEn);
       fd.append('descriptionAr', form.descriptionAr);
-      fd.append('price', form.price);
-      fd.append('vendorId', form.vendorId);
-      fd.append('categoryId', form.categoryId);
-      fd.append('brandId', form.brandId);
+      fd.append('price', Number(form.price));
+
+      fd.append('vendorId', Number(form.vendorId));
+      fd.append('categoryId', Number(form.categoryId));
+      fd.append('brandId', Number(form.brandId));
+
       form.occasionIds.forEach((id, i) => {
-        fd.append(`occasionIds[${i}]`, id);
+        fd.append(`occasionIds[${i}]`, Number(id));
       });
 
       form.images.forEach((file) => {
@@ -130,19 +163,20 @@ export default function Products() {
       });
 
       variants.forEach((v, i) => {
-        fd.append(`variants[${i}][price]`, v.price);
-        fd.append(`variants[${i}][stockQuantity]`, v.stock);
-        fd.append(`variants[${i}][attributes][size]`, v.size);
-        fd.append(`variants[${i}][attributes][color]`, v.color);
+        fd.append(`variants[${i}][price]`, Number(v.price));
+        fd.append(`variants[${i}][stockQuantity]`, Number(v.stock));
+        fd.append(`variants[${i}][attributes][size]`, v.size || '');
+        fd.append(`variants[${i}][attributes][color]`, v.color || '');
       });
 
       features.forEach((f, i) => {
-        if (f.key.trim() && f.value.trim()) {
+        if (f.key && f.value) {
           fd.append(`features[${i}][${f.key}]`, f.value);
         }
       });
+
       featuresAr.forEach((f, i) => {
-        if (f.key.trim() && f.value.trim()) {
+        if (f.key && f.value) {
           fd.append(`featuresAr[${i}][${f.key}]`, f.value);
         }
       });
@@ -239,7 +273,13 @@ export default function Products() {
 
             <TextField label="Price" name="price" value={form.price} onChange={handleChange} />
 
-            <TextField label="Vendor" name="vendorId" value={form.vendorId} onChange={handleChange} />
+            <TextField select label="Vendor" name="vendorId" value={form.vendorId || ''} onChange={handleChange}>
+              {vendors.map((v) => (
+                <MenuItem key={v.id} value={v.id}>
+                  {v.name}
+                </MenuItem>
+              ))}
+            </TextField>
             <TextField select label="Category" name="categoryId" value={form.categoryId || ''} onChange={handleChange}>
               {categories.map((cat) => (
                 <MenuItem key={cat.id} value={cat.id}>
