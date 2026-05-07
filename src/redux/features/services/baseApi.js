@@ -60,7 +60,7 @@ export const baseApi = createApi({
         method: 'POST',
         body: formData
       }),
-      tagTypes: ['Occasions']
+      invalidatesTags: ['Occasions']
     }),
 
     deleteOccasion: builder.mutation({
@@ -200,10 +200,10 @@ export const baseApi = createApi({
     }),
 
     updateOrder: builder.mutation({
-      query: ({ id, formData }) => ({
+      query: ({ id, ...body }) => ({
         url: `admin/edit-order/${id}`,
         method: 'POST',
-        body: formData
+        body
       }),
       invalidatesTags: ['Orders']
     }),

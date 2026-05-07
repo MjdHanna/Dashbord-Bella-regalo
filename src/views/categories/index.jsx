@@ -26,7 +26,7 @@ import {
   useUpdateCategoryMutation,
   useDeleteCategoryMutation
 } from '../../redux/features/services/baseApi';
-
+import SpinnerLoader from '../../ui-component/SpinnerLoader';
 export default function Categories() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -108,8 +108,18 @@ export default function Categories() {
       console.error(err);
     }
   };
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this category?')) return;
 
-  if (isLoading) return <Typography p={3}>Loading...</Typography>;
+    try {
+      const res = await deleteCategory(id).unwrap();
+
+      console.log('DELETE SUCCESS:', res);
+    } catch (err) {
+      console.log('DELETE ERROR:', err);
+    }
+  };
+  if (isLoading) return <SpinnerLoader text="Loading Categories..." />;
 
   return (
     <Box sx={{ minHeight: '100vh', background: theme.palette.grey[50], p: isMobile ? 2 : 3 }}>
@@ -157,7 +167,13 @@ export default function Categories() {
                 Edit
               </Button>
 
-              <Button fullWidth={isMobile} variant="contained" color="error" startIcon={<DeleteIcon />}>
+              <Button
+                fullWidth={isMobile}
+                variant="contained"
+                color="error"
+                startIcon={<DeleteIcon />}
+                onClick={() => handleDelete(item.id)}
+              >
                 Delete
               </Button>
             </Stack>

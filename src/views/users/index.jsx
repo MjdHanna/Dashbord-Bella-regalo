@@ -22,6 +22,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import { useTheme } from '@mui/material/styles';
 
 import { useGetUsersQuery, useDeleteUserMutation, useUpdateUserMutation } from '../../redux/features/services/baseApi';
+import SpinnerLoader from '../../ui-component/SpinnerLoader';
 
 export default function Users() {
   const theme = useTheme();
@@ -49,25 +50,35 @@ export default function Users() {
   };
 
   const handleUpdate = async () => {
-    const formData = new FormData();
+    try {
+      const formData = new FormData();
 
-    formData.append('name', selectedUser.name);
-    formData.append('phoneNumber', selectedUser.phoneNumber || '');
-    formData.append('gender', selectedUser.gender || '');
+      formData.append('name', selectedUser.name || '');
 
-    if (selectedUser.email !== selectedUser.originalEmail) {
-      formData.append('email', selectedUser.email);
+      formData.append('phone_number', selectedUser.phoneNumber || '');
+
+      formData.append('gender', selectedUser.gender || '');
+
+      formData.append('email', selectedUser.email || '');
+
+      if (password.trim()) {
+        formData.append('password', password);
+      }
+
+      const res = await updateUser({
+        id: selectedUser.id,
+        formData
+      }).unwrap();
+
+      console.log('UPDATE SUCCESS:', res);
+
+      setOpen(false);
+    } catch (err) {
+      console.log('UPDATE ERROR:', err);
+      console.log('ERROR DATA:', err?.data);
     }
-
-    if (password) {
-      formData.append('password', password);
-    }
-
-    await updateUser({ id: selectedUser.id, formData });
-    setOpen(false);
   };
-
-  if (isLoading) return <Typography p={3}>Loading users...</Typography>;
+  if (isLoading) return <SpinnerLoader text="Loading Users..." />;
 
   return (
     <Box sx={{ minHeight: '100vh', p: isMobile ? 2 : 3, background: '#f5f7fa' }}>

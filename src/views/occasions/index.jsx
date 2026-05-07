@@ -14,6 +14,7 @@ import {
 
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
+import SpinnerLoader from '../../ui-component/SpinnerLoader';
 
 export default function Occasions() {
   const theme = useTheme();
@@ -100,7 +101,7 @@ export default function Occasions() {
     }
   };
 
-  if (isLoading) return <p>Loading...</p>;
+  if (isLoading) return <SpinnerLoader text="Loading Occasions..." />;
 
   return (
     <Box p={isMobile ? 2 : 3}>
@@ -164,6 +165,50 @@ export default function Occasions() {
           </Card>
         ))}
       </Stack>
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>{editing ? 'Edit Occasion' : 'Add Occasion'}</DialogTitle>
+
+        <DialogContent sx={{ pt: 2 }}>
+          <Stack spacing={2} mt={1}>
+            <TextField label="Name EN" name="nameEn" value={form.nameEn} onChange={handleChange} fullWidth />
+
+            <TextField label="Name AR" name="nameAr" value={form.nameAr} onChange={handleChange} fullWidth />
+
+            <TextField
+              label="Description EN"
+              name="descriptionEn"
+              value={form.descriptionEn}
+              onChange={handleChange}
+              multiline
+              rows={3}
+              fullWidth
+            />
+
+            <TextField
+              label="Description AR"
+              name="descriptionAr"
+              value={form.descriptionAr}
+              onChange={handleChange}
+              multiline
+              rows={3}
+              fullWidth
+            />
+
+            <Button variant="outlined" component="label">
+              Upload Image
+              <input hidden type="file" name="image" onChange={handleChange} />
+            </Button>
+          </Stack>
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setOpen(false)}>Cancel</Button>
+
+          <Button variant="contained" onClick={handleSubmit}>
+            {editing ? 'Update' : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

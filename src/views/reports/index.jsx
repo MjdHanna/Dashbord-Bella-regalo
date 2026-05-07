@@ -8,6 +8,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import { useTheme } from '@mui/material/styles';
 
 import { useGetMessagesQuery, useDeleteMessageMutation, useMarkMessageAsReadMutation } from '../../redux/features/services/baseApi';
+import SpinnerLoader from '../../ui-component/SpinnerLoader';
 
 export default function Reports() {
   const theme = useTheme();
@@ -30,7 +31,7 @@ export default function Reports() {
     refetch();
   };
 
-  if (isLoading) return <Typography p={3}>Loading messages...</Typography>;
+  if (isLoading) return <SpinnerLoader text="Loading Reports..." />;
 
   return (
     <Box sx={{ minHeight: '100vh', p: isMobile ? 2 : 3, background: theme.palette.grey[50] }}>

@@ -23,7 +23,7 @@ import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 
 import { useGetOrdersQuery, useDeleteOrderMutation, useUpdateOrderMutation } from '../../redux/features/services/baseApi';
-
+import SpinnerLoader from '../../ui-component/SpinnerLoader';
 export default function Orders() {
   const theme = useTheme();
 
@@ -55,26 +55,36 @@ export default function Orders() {
     setForm({
       shippingAddress: order.shippingAddress || '',
       shippingPhone: order.shippingPhone || '',
-      shippingName: order.customerName || '',
+      shippingName: order.shippingName || '',
       status: order.status || ''
     });
     setOpen(true);
   };
 
   const handleSave = async () => {
-    await updateOrder({
-      id: selectedOrder.id,
-      formData: {
-        shipping_name: form.shippingName,
-        shipping_phone: form.shippingPhone,
-        shipping_address: form.shippingAddress,
-        status: form.status
-      }
-    });
-    setOpen(false);
+    try {
+      const payload = {};
+
+      if (form.shippingName?.trim()) payload.shippingName = form.shippingName;
+
+      if (form.shippingPhone?.trim()) payload.shippingPhone = form.shippingPhone;
+
+      if (form.shippingAddress?.trim()) payload.shippingAddress = form.shippingAddress;
+
+      payload.status = form.status;
+      const res = await updateOrder({
+        id: selectedOrder.id,
+        ...payload
+      }).unwrap();
+
+      console.log('UPDATED:', res);
+      setOpen(false);
+    } catch (err) {
+      console.log('UPDATE ERROR:', err);
+    }
   };
 
-  if (isLoading) return <Typography p={3}>Loading...</Typography>;
+  if (isLoading) return <SpinnerLoader text="Loading Orders..." />;
 
   return (
     <Box p={isMobile ? 2 : 3}>

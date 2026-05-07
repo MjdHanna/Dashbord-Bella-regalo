@@ -32,6 +32,7 @@ import {
   useGetProductByIdQuery
 } from '../../redux/features/services/baseApi';
 import { useEffect } from 'react';
+import SpinnerLoader from '../../ui-component/SpinnerLoader';
 export default function Products() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -228,7 +229,7 @@ export default function Products() {
 
       <Stack spacing={2}>
         {isLoading ? (
-          <Typography>Loading...</Typography>
+          <SpinnerLoader text="Loading Products..." />
         ) : (
           products.map((p) => (
             <Card key={p.id} sx={{ p: 2 }}>

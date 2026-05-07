@@ -26,7 +26,7 @@ import {
   useUpdateDriverMutation,
   useDeleteDriverMutation
 } from '../../redux/features/services/baseApi';
-
+import SpinnerLoader from '../../ui-component/SpinnerLoader';
 export default function Drivers() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -97,27 +97,51 @@ export default function Drivers() {
   const handleSubmit = async () => {
     const formData = new FormData();
 
-    Object.entries(form).forEach(([key, value]) => {
-      if (!value) return;
-      if (editing && key === 'email' && value === editing.email) return;
-      if (key === 'password' && !value) return;
+    if (editing) {
 
-      formData.append(key, value);
-    });
-
-    try {
-      if (editing) {
-        await updateDriver({ id: editing.id, formData }).unwrap();
-      } else {
-        await createDriver(formData).unwrap();
+      if (form.name !== editing.name) {
+        formData.append('name', form.name);
       }
 
-      handleClose();
-    } catch (err) {
-      console.error(err);
-    }
-  };
+      if (form.email !== editing.email) {
+        formData.append('email', form.email);
+      }
 
+      if (form.phoneNumber !== editing.phoneNumber) {
+        formData.append('phoneNumber', form.phoneNumber);
+      }
+
+      if (form.password) {
+        formData.append('password', form.password);
+      }
+
+      if (form.image) {
+        formData.append('image', form.image);
+      }
+
+      await updateDriver({
+        id: editing.id,
+        formData
+      }).unwrap();
+    } else {
+
+      formData.append('name', form.name);
+      formData.append('email', form.email);
+      formData.append('phoneNumber', form.phoneNumber);
+
+      if (form.password) {
+        formData.append('password', form.password);
+      }
+
+      if (form.image) {
+        formData.append('image', form.image);
+      }
+
+      await createDriver(formData).unwrap();
+    }
+
+    handleClose();
+  };
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure?')) return;
 
@@ -128,7 +152,7 @@ export default function Drivers() {
     }
   };
 
-  if (isLoading) return <Typography p={3}>Loading...</Typography>;
+  if (isLoading) return <SpinnerLoader text="Loading Drivers..." />;
 
   return (
     <Box

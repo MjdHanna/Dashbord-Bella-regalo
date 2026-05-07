@@ -14,6 +14,7 @@ import {
   useUpdateBrandMutation,
   useDeleteBrandMutation
 } from '../../redux/features/services/baseApi';
+import SpinnerLoader from '../../ui-component/SpinnerLoader';
 
 export default function Brands() {
   const theme = useTheme();
@@ -104,7 +105,7 @@ export default function Brands() {
     }
   };
 
-  if (isLoading) return <Typography p={3}>Loading...</Typography>;
+  if (isLoading) return <SpinnerLoader text="Loading brands..." />;
 
   return (
     <Box p={isMobile ? 2 : 3}>
@@ -168,6 +169,50 @@ export default function Brands() {
           </Card>
         ))}
       </Stack>
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>{editing ? 'Edit Brand' : 'Add Brand'}</DialogTitle>
+
+        <DialogContent sx={{ pt: 2 }}>
+          <Stack spacing={2} mt={1}>
+            <TextField fullWidth label="Name EN" name="nameEn" value={form.nameEn} onChange={handleChange} />
+
+            <TextField fullWidth label="Name AR" name="nameAr" value={form.nameAr} onChange={handleChange} />
+
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Description EN"
+              name="descriptionEn"
+              value={form.descriptionEn}
+              onChange={handleChange}
+            />
+
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Description AR"
+              name="descriptionAr"
+              value={form.descriptionAr}
+              onChange={handleChange}
+            />
+
+            <Button variant="outlined" component="label">
+              Upload Logo
+              <input hidden type="file" name="logo" onChange={handleChange} />
+            </Button>
+          </Stack>
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setOpen(false)}>Cancel</Button>
+
+          <Button variant="contained" onClick={handleSubmit}>
+            {editing ? 'Update' : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
