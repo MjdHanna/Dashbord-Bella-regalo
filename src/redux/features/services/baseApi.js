@@ -254,7 +254,6 @@ export const baseApi = createApi({
       invalidatesTags: ['Vendors']
     }),
     //End Vendorssssssss
-
     // ================= DRIVERS =================
 
     getDrivers: builder.query({

@@ -1,5 +1,6 @@
-import React from 'react';
-import { Box, Typography, Stack, Card, Avatar, Button, Chip, useMediaQuery } from '@mui/material';
+import React, { useState } from 'react';
+
+import { Box, Typography, Stack, Card, Avatar, Button, Chip, useMediaQuery, Snackbar, Alert, CircularProgress } from '@mui/material';
 
 import DeleteIcon from '@mui/icons-material/Delete';
 import StorefrontIcon from '@mui/icons-material/Storefront';
@@ -13,38 +14,98 @@ import {
   useApproveVendorMutation,
   useRejectVendorMutation
 } from '../../redux/features/services/baseApi';
+
 export default function Vendors() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  const { data, isLoading, refetch } = useGetVendorsQuery();
+  const { data, isLoading } = useGetVendorsQuery();
+
   const [deleteVendor] = useDeleteVendorMutation();
   const [approveVendor] = useApproveVendorMutation();
   const [rejectVendor] = useRejectVendorMutation();
+
   const vendors = Array.isArray(data?.data) ? data.data : [];
+
+  const [loadingId, setLoadingId] = useState(null);
+  const [actionType, setActionType] = useState('');
+
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
+
+  const showSnackbar = (message, severity = 'success') => {
+    setSnackbar({
+      open: true,
+      message,
+      severity
+    });
+  };
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this vendor?')) return;
 
     try {
-      await deleteVendor(id).unwrap();
-      refetch();
+      setLoadingId(id);
+      setActionType('delete');
+
+      const res = await deleteVendor(id).unwrap();
+
+      showSnackbar(res?.message || 'Vendor deleted successfully');
     } catch (err) {
+      showSnackbar(err?.data?.message || 'Failed to delete vendor', 'error');
+
       console.error(err);
+    } finally {
+      setLoadingId(null);
+      setActionType('');
     }
   };
+
   const handleApprove = async (id) => {
-    await approveVendor(id).unwrap();
-    refetch();
+    try {
+      setLoadingId(id);
+      setActionType('approve');
+
+      const res = await approveVendor(id).unwrap();
+
+      showSnackbar(res?.message || 'Vendor approved successfully');
+    } catch (err) {
+      showSnackbar(err?.data?.message || 'Failed to approve vendor', 'error');
+
+      console.error(err);
+    } finally {
+      setLoadingId(null);
+      setActionType('');
+    }
   };
 
   const handleReject = async (id) => {
-    await rejectVendor(id).unwrap();
-    refetch();
+    try {
+      setLoadingId(id);
+      setActionType('reject');
+
+      const res = await rejectVendor(id).unwrap();
+
+      showSnackbar(res?.message || 'Vendor rejected successfully');
+    } catch (err) {
+      showSnackbar(err?.data?.message || 'Failed to reject vendor', 'error');
+
+      console.error(err);
+    } finally {
+      setLoadingId(null);
+      setActionType('');
+    }
   };
 
   if (isLoading) {
-    return <Typography p={3}>Loading vendors...</Typography>;
+    return (
+      <Typography p={3} fontWeight={600}>
+        Loading vendors...
+      </Typography>
+    );
   }
 
   return (
@@ -62,6 +123,7 @@ export default function Vendors() {
 
         <Chip label={`${vendors.length} vendors`} color="primary" variant="outlined" />
       </Stack>
+
       <Stack spacing={2}>
         {vendors.map((vendor) => (
           <Card
@@ -112,45 +174,99 @@ export default function Vendors() {
 
               <Stack direction="row" alignItems="center" gap={1} mt={1}>
                 <PhoneIcon fontSize="small" />
+
                 <Typography fontSize={13}>{vendor.phoneNumber}</Typography>
               </Stack>
             </Box>
 
             <Stack direction={isMobile ? 'column' : 'row'} spacing={1} width={isMobile ? '100%' : 'auto'}>
+
+              {vendor.status === 'approved' && (
+                <Chip
+                  label="Approved"
+                  color="success"
+                  sx={{
+                    fontWeight: 700,
+                    borderRadius: 3
+                  }}
+                />
+              )}
+
+              {vendor.status === 'rejected' && (
+                <Chip
+                  label="Rejected"
+                  color="error"
+                  sx={{
+                    fontWeight: 700,
+                    borderRadius: 3
+                  }}
+                />
+              )}
+              {vendor.status !== 'approved' && vendor.status !== 'rejected' && (
+                <>
+                  <Button
+                    fullWidth={isMobile}
+                    variant="contained"
+                    color="success"
+                    disabled={loadingId === vendor.id && actionType === 'approve'}
+                    onClick={() => handleApprove(vendor.id)}
+                    sx={{
+                      borderRadius: 3
+                    }}
+                  >
+                    {loadingId === vendor.id && actionType === 'approve' ? <CircularProgress size={22} color="inherit" /> : 'Approve'}
+                  </Button>
+
+                  <Button
+                    fullWidth={isMobile}
+                    variant="outlined"
+                    color="error"
+                    disabled={loadingId === vendor.id && actionType === 'reject'}
+                    onClick={() => handleReject(vendor.id)}
+                    sx={{
+                      borderRadius: 3
+                    }}
+                  >
+                    {loadingId === vendor.id && actionType === 'reject' ? <CircularProgress size={22} color="inherit" /> : 'Reject'}
+                  </Button>
+                </>
+              )}
               <Button
                 fullWidth={isMobile}
                 variant="contained"
-                color="success"
-                onClick={() => handleApprove(vendor.id)}
-                sx={{ borderRadius: 3 }}
-              >
-                Approve
-              </Button>
-
-              <Button
-                fullWidth={isMobile}
-                variant="outlined"
                 color="error"
-                onClick={() => handleReject(vendor.id)}
-                sx={{ borderRadius: 3 }}
-              >
-                Reject
-              </Button>
-
-              <Button
-                fullWidth={isMobile}
-                variant="contained"
-                color="error"
-                startIcon={<DeleteIcon />}
+                startIcon={!(loadingId === vendor.id && actionType === 'delete') && <DeleteIcon />}
+                disabled={loadingId === vendor.id && actionType === 'delete'}
                 onClick={() => handleDelete(vendor.id)}
-                sx={{ borderRadius: 3 }}
+                sx={{
+                  borderRadius: 3
+                }}
               >
-                Delete
+                {loadingId === vendor.id && actionType === 'delete' ? <CircularProgress size={22} color="inherit" /> : 'Delete'}
               </Button>
             </Stack>
           </Card>
         ))}
       </Stack>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() =>
+          setSnackbar((prev) => ({
+            ...prev,
+            open: false
+          }))
+        }
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right'
+        }}
+      >
+        <Alert severity={snackbar.severity} variant="filled" sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

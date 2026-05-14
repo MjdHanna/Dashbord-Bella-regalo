@@ -22,6 +22,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import { useTheme } from '@mui/material/styles';
 
 import { useGetUsersQuery, useDeleteUserMutation, useUpdateUserMutation } from '../../redux/features/services/baseApi';
+
 import SpinnerLoader from '../../ui-component/SpinnerLoader';
 
 export default function Users() {
@@ -29,40 +30,80 @@ export default function Users() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const { data, isLoading } = useGetUsersQuery();
+
   const [deleteUser] = useDeleteUserMutation();
-  const [updateUser] = useUpdateUserMutation();
+  const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
 
   const [open, setOpen] = useState(false);
+
   const [selectedUser, setSelectedUser] = useState(null);
+
   const [password, setPassword] = useState('');
+
+  const [selectedImage, setSelectedImage] = useState(null);
+
+  const [previewImage, setPreviewImage] = useState('');
 
   const users = Array.isArray(data?.data) ? data.data : [];
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this user?')) return;
-    await deleteUser(id);
+
+    try {
+      await deleteUser(id).unwrap();
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   const handleOpenEdit = (user) => {
-    setSelectedUser({ ...user, originalEmail: user.email });
+    setSelectedUser({
+      ...user,
+      originalEmail: user.email,
+      birth_date: user.birth_date || ''
+    });
+
     setPassword('');
+
+    setSelectedImage(null);
+
+    if (user?.image) {
+      setPreviewImage(user.image);
+    } else {
+      setPreviewImage('');
+    }
+
     setOpen(true);
   };
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
 
+    if (file) {
+      setSelectedImage(file);
+
+      setPreviewImage(URL.createObjectURL(file));
+    }
+  };
   const handleUpdate = async () => {
     try {
       const formData = new FormData();
 
-      formData.append('name', selectedUser.name || '');
+      formData.append('name', selectedUser?.name || '');
 
-      formData.append('phone_number', selectedUser.phoneNumber || '');
+      formData.append('phone_number', selectedUser?.phoneNumber || '');
 
-      formData.append('gender', selectedUser.gender || '');
+      formData.append('gender', selectedUser?.gender || '');
 
-      formData.append('email', selectedUser.email || '');
+      formData.append('email', selectedUser?.email || '');
+
+      formData.append('birth_date', selectedUser?.birth_date || '');
 
       if (password.trim()) {
         formData.append('password', password);
+      }
+
+      if (selectedImage) {
+        formData.append('image', selectedImage);
       }
 
       const res = await updateUser({
@@ -78,10 +119,19 @@ export default function Users() {
       console.log('ERROR DATA:', err?.data);
     }
   };
-  if (isLoading) return <SpinnerLoader text="Loading Users..." />;
+
+  if (isLoading) {
+    return <SpinnerLoader text="Loading Users..." />;
+  }
 
   return (
-    <Box sx={{ minHeight: '100vh', p: isMobile ? 2 : 3, background: '#f5f7fa' }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        p: isMobile ? 2 : 3,
+        background: '#f5f7fa'
+      }}
+    >
       <Stack direction={isMobile ? 'column' : 'row'} spacing={2} justifyContent="space-between" mb={4}>
         <Typography variant={isMobile ? 'h5' : 'h4'} fontWeight={700}>
           👥 Users Management
@@ -89,6 +139,7 @@ export default function Users() {
 
         <Chip label={`${users.length} users`} color="primary" variant="outlined" />
       </Stack>
+
       <Stack spacing={2}>
         {users.map((user) => (
           <Card
@@ -102,8 +153,15 @@ export default function Users() {
               gap: 2
             }}
           >
-            <Avatar sx={{ bgcolor: theme.palette.primary.main }}>
-              <PersonIcon />
+            <Avatar
+              src={user?.image || ''}
+              sx={{
+                width: 70,
+                height: 70,
+                bgcolor: theme.palette.primary.main
+              }}
+            >
+              {!user?.profile_img && <PersonIcon />}
             </Avatar>
 
             <Box flex={1} width="100%">
@@ -112,6 +170,8 @@ export default function Users() {
               <Typography variant="body2">📧 {user.email}</Typography>
 
               {user.phoneNumber && <Typography variant="body2">📞 {user.phoneNumber}</Typography>}
+
+              {user.birth_date && <Typography variant="body2">🎂 {user.birth_date}</Typography>}
 
               {user.gender && <Chip label={user.gender} size="small" sx={{ mt: 1 }} />}
             </Box>
@@ -134,58 +194,113 @@ export default function Users() {
           </Card>
         ))}
       </Stack>
+
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm" fullScreen={isMobile}>
         <DialogTitle>Edit User</DialogTitle>
 
         <DialogContent>
-          <TextField
-            fullWidth
-            label="Name"
-            margin="normal"
-            value={selectedUser?.name || ''}
-            onChange={(e) => setSelectedUser({ ...selectedUser, name: e.target.value })}
-          />
+          <Stack spacing={2} mt={1}>
+            <Box display="flex" flexDirection="column" alignItems="center" gap={2}>
+              <Avatar
+                src={previewImage || ''}
+                sx={{
+                  width: 120,
+                  height: 120,
+                  border: '3px solid #1976d2'
+                }}
+              >
+                {!previewImage && <PersonIcon />}
+              </Avatar>
 
-          <TextField
-            fullWidth
-            label="Email"
-            margin="normal"
-            value={selectedUser?.email || ''}
-            onChange={(e) => setSelectedUser({ ...selectedUser, email: e.target.value })}
-          />
+              <Typography variant="body2" color="text.secondary">
+                {selectedImage ? 'New image selected' : 'Current user image'}
+              </Typography>
 
-          <TextField
-            fullWidth
-            label="Phone"
-            margin="normal"
-            value={selectedUser?.phoneNumber || ''}
-            onChange={(e) => setSelectedUser({ ...selectedUser, phoneNumber: e.target.value })}
-          />
+              <Button variant="outlined" component="label">
+                Change Image
+                <input hidden type="file" accept="image/*" onChange={handleImageChange} />
+              </Button>
+            </Box>
 
-          <TextField
-            fullWidth
-            label="Gender"
-            margin="normal"
-            value={selectedUser?.gender || ''}
-            onChange={(e) => setSelectedUser({ ...selectedUser, gender: e.target.value })}
-          />
+            <TextField
+              fullWidth
+              label="Name"
+              value={selectedUser?.name || ''}
+              onChange={(e) =>
+                setSelectedUser({
+                  ...selectedUser,
+                  name: e.target.value
+                })
+              }
+            />
 
-          <TextField
-            fullWidth
-            label="New Password"
-            type="password"
-            margin="normal"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+            <TextField
+              fullWidth
+              label="Email"
+              value={selectedUser?.email || ''}
+              onChange={(e) =>
+                setSelectedUser({
+                  ...selectedUser,
+                  email: e.target.value
+                })
+              }
+            />
+
+            <TextField
+              fullWidth
+              label="Phone"
+              value={selectedUser?.phoneNumber || ''}
+              onChange={(e) =>
+                setSelectedUser({
+                  ...selectedUser,
+                  phoneNumber: e.target.value
+                })
+              }
+            />
+
+            <TextField
+              fullWidth
+              label="Gender"
+              value={selectedUser?.gender || ''}
+              onChange={(e) =>
+                setSelectedUser({
+                  ...selectedUser,
+                  gender: e.target.value
+                })
+              }
+            />
+
+            <TextField
+              fullWidth
+              type="date"
+              label="Birth Date"
+              InputLabelProps={{
+                shrink: true
+              }}
+              value={selectedUser?.birth_date || ''}
+              onChange={(e) =>
+                setSelectedUser({
+                  ...selectedUser,
+                  birth_date: e.target.value
+                })
+              }
+            />
+
+            <TextField fullWidth label="New Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          </Stack>
         </DialogContent>
 
-        <DialogActions>
+        <DialogActions
+          sx={{
+            p: 2
+          }}
+        >
           <Button fullWidth={isMobile} onClick={() => setOpen(false)}>
             Cancel
           </Button>
-          <Button fullWidth={isMobile} variant="contained" onClick={handleUpdate}>
-            Save Changes
+
+          <Button fullWidth={isMobile} variant="contained" onClick={handleUpdate} disabled={isUpdating}>
+            {isUpdating ? 'Saving...' : 'Save Changes'}
           </Button>
         </DialogActions>
       </Dialog>
