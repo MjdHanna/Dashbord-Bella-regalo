@@ -211,7 +211,7 @@ export const baseApi = createApi({
     // ================= STATISTICS =================
 
     getStatistics: builder.query({
-      query: () => 'admin/statistics'
+      query: (role) => (role === 'vendor' ? 'vendor/statistics' : 'admin/statistics')
     }),
     //End STATISTICS
 

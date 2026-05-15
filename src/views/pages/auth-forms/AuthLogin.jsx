@@ -50,17 +50,26 @@ export default function AuthLogin() {
 
         dispatch(
           setCredentials({
-            token: res.data.accessToken, // 🔥 هذا هو الصح
+            token: res.data.accessToken,
+
             user: {
               id: res.data.userId,
               name: res.data.userName,
-              role: res.data.userAccountType
-            }
+              accountType: res.data.userAccountType,
+              vendorId: res.data.vendorId
+            },
+
+            abilities: res.data.userAbility || []
           })
         );
+
+        navigate('/dashboard/default', {
+          replace: true
+        });
       } catch (err) {
         console.error(err);
-        alert('Login failed');
+
+        alert(err?.data?.message || 'Login failed');
       }
     }
   });

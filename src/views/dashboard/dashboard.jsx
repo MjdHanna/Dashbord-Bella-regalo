@@ -1,18 +1,16 @@
 import { Grid } from '@mui/material';
 import { useStatistics } from './hooks/useStatistics';
-
 import StatsCharts from './components/StatsCards';
 import RevenueChart from './charts/RevenueChart';
 import OrdersChart from './charts/OrdersChart';
 import MonthlySalesChart from './charts/MonthlySalesChart';
-
 export default function Dashboard() {
-  const { stats, isLoading } = useStatistics();
+  const { stats, role, isLoading } = useStatistics();
 
   return (
     <Grid container spacing={2}>
       <Grid item xs={12}>
-        <StatsCharts stats={stats} />
+        <StatsCharts stats={stats} role={role} />
       </Grid>
 
       <Grid item xs={12} md={6}>
@@ -24,7 +22,7 @@ export default function Dashboard() {
       </Grid>
 
       <Grid item xs={12}>
-        <MonthlySalesChart data={stats?.charts?.monthlySales} />
+        <MonthlySalesChart data={stats?.charts?.monthlySales || []} />
       </Grid>
     </Grid>
   );

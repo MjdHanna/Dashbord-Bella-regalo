@@ -1,24 +1,42 @@
+import { Typography, Card, Grid } from '@mui/material';
 import Chart from 'react-apexcharts';
-import { Grid, Card, Typography } from '@mui/material';
-
-export default function StatsCharts({ stats }) {
-  const charts = [
-    {
-      label: 'Users',
-      value: stats?.users?.total || 0,
-      color: '#5e35b1'
-    },
-    {
-      label: 'Vendors',
-      value: stats?.vendors?.total || 0,
-      color: '#00acc1'
-    },
-    {
-      label: 'Orders',
-      value: stats?.orders?.total || 0,
-      color: '#43a047'
-    }
-  ];
+export default function StatsCharts({ stats, role }) {
+  const charts =
+    role === 'admin'
+      ? [
+          {
+            label: 'Users',
+            value: stats?.users?.total || 0,
+            color: '#5e35b1'
+          },
+          {
+            label: 'Vendors',
+            value: stats?.vendors?.total || 0,
+            color: '#00acc1'
+          },
+          {
+            label: 'Orders',
+            value: stats?.orders?.total || 0,
+            color: '#43a047'
+          }
+        ]
+      : [
+          {
+            label: 'Products',
+            value: stats?.totalProducts?.Products || 0,
+            color: '#5e35b1'
+          },
+          {
+            label: 'Low Stock',
+            value: stats?.lowStock?.lowStockProducts || 0,
+            color: '#ff9800'
+          },
+          {
+            label: 'Pending Orders',
+            value: stats?.pending?.pendingOrders || 0,
+            color: '#43a047'
+          }
+        ];
 
   return (
     <Grid container spacing={2}>
