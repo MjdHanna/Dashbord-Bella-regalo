@@ -5,6 +5,7 @@ import MainLayout from 'layout/MainLayout';
 import Loadable from 'ui-component/Loadable';
 
 import ProtectedRoute from './ProtectedRoute';
+import Unauthorized from '../views/pages/Unauthorized/Unauthorized';
 
 // pages
 const DashboardDefault = Loadable(lazy(() => import('views/dashboard/dashboard')));
@@ -135,6 +136,10 @@ const MainRoutes = {
           <OccasionsPage />
         </ProtectedRoute>
       )
+    },
+    {
+      path: '/unauthorized',
+      element: <Unauthorized />
     }
   ]
 };

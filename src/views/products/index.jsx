@@ -21,48 +21,117 @@ import EditIcon from '@mui/icons-material/Edit';
 
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
-
+import { useSelector } from 'react-redux';
 import {
   useCreateProductMutation,
   useGetProductsQuery,
   useDeleteProductMutation,
   useUpdateProductMutation,
+  useGetVendorProductsQuery,
+  useCreateVendorProductMutation,
+  useUpdateVendorProductMutation,
+  useDeleteVendorProductMutation,
+  useGetPendingProductsQuery,
+  useApproveProductMutation,
+  useRejectProductMutation,
   useGetVendorsQuery,
   useGetCategoriesQuery,
   useGetBrandsQuery,
-  useGetProductByIdQuery,
-  useGetOccasionsQuery
+  useGetOccasionsQuery,
+  useGetVendorCategoriesQuery,
+  useGetVendorBrandsQuery,
+  useGetVendorOccasionsQuery,
+  useGetProductByIdQuery
 } from '../../redux/features/services/baseApi';
 
 import SpinnerLoader from '../../ui-component/SpinnerLoader';
-
+import HourglassTopIcon from '@mui/icons-material/HourglassTop';
 export default function Products() {
+  const user = useSelector((state) => state.auth.user);
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [currentId, setCurrentId] = useState(null);
+  const isAdmin = user?.accountType === 'admin';
+  const isVendor = user?.accountType === 'vendor';
 
-  const { data: products = [], isLoading } = useGetProductsQuery();
+  const { data: adminProducts = [], isLoading: adminLoading } = useGetProductsQuery(undefined, { skip: !isAdmin });
 
-  const { data: vendorsRes } = useGetVendorsQuery();
-  const vendors = vendorsRes?.data || vendorsRes || [];
+  const { data: vendorProducts = [], isLoading: vendorLoading } = useGetVendorProductsQuery(undefined, { skip: !isVendor });
 
-  const { data: categoriesRes } = useGetCategoriesQuery();
-  const categories = categoriesRes?.data || categoriesRes || [];
+  const products = isAdmin ? adminProducts : vendorProducts;
+  const isLoading = isAdmin ? adminLoading : vendorLoading;
 
-  const { data: brandsRes } = useGetBrandsQuery();
-  const brands = brandsRes?.data || brandsRes || [];
+  const [showPending, setShowPending] = useState(false);
 
-  const { data: occasionsRes } = useGetOccasionsQuery();
-  const occasions = occasionsRes?.data || occasionsRes || [];
+  const { data: pendingProducts = [] } = useGetPendingProductsQuery(undefined, {
+    skip: !isAdmin
+  });
+
+  const [approveProduct] = useApproveProductMutation();
+
+  const [rejectProduct] = useRejectProductMutation();
+
+  const { data: vendorsRes } = useGetVendorsQuery(undefined, {
+    skip: !isAdmin
+  });
+  const vendors = isAdmin ? vendorsRes?.data || vendorsRes || [] : [];
+
+  // ================= CATEGORIES =================
+
+  const { data: adminCategoriesRes } = useGetCategoriesQuery(undefined, {
+    skip: !isAdmin
+  });
+
+  const { data: vendorCategoriesRes } = useGetVendorCategoriesQuery(undefined, {
+    skip: !isVendor
+  });
+
+  const categories = isAdmin ? adminCategoriesRes?.data || adminCategoriesRes || [] : vendorCategoriesRes || [];
+
+  // ================= BRANDS =================
+
+  const { data: adminBrandsRes } = useGetBrandsQuery(undefined, {
+    skip: !isAdmin
+  });
+
+  const { data: vendorBrandsRes } = useGetVendorBrandsQuery(undefined, {
+    skip: !isVendor
+  });
+
+  const brands = isAdmin ? adminBrandsRes?.data || adminBrandsRes || [] : vendorBrandsRes || [];
+
+  // ================= OCCASIONS =================
+
+  const { data: adminOccasionsRes } = useGetOccasionsQuery(undefined, {
+    skip: !isAdmin
+  });
+
+  const { data: vendorOccasionsRes } = useGetVendorOccasionsQuery(undefined, {
+    skip: !isVendor
+  });
+
+  const occasions = isAdmin ? adminOccasionsRes?.data || adminOccasionsRes || [] : vendorOccasionsRes || [];
 
   const { data: productDetails } = useGetProductByIdQuery(currentId, {
     skip: !currentId
   });
 
-  const [createProduct] = useCreateProductMutation();
-  const [updateProduct] = useUpdateProductMutation();
-  const [deleteProduct] = useDeleteProductMutation();
+  const [createAdminProduct] = useCreateProductMutation();
+  const [createVendorProduct] = useCreateVendorProductMutation();
+
+  const createProduct = isAdmin ? createAdminProduct : createVendorProduct;
+
+  const [updateAdminProduct] = useUpdateProductMutation();
+  const [updateVendorProduct] = useUpdateVendorProductMutation();
+
+  const updateProduct = isAdmin ? updateAdminProduct : updateVendorProduct;
+
+  const [deleteAdminProduct] = useDeleteProductMutation();
+  const [deleteVendorProduct] = useDeleteVendorProductMutation();
+
+  const deleteProduct = isAdmin ? deleteAdminProduct : deleteVendorProduct;
 
   const [open, setOpen] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
@@ -205,12 +274,20 @@ export default function Products() {
   };
 
   const handleSubmit = async () => {
+    console.log('===== FORM DATA DEBUG =====');
+    console.log('FORM:', form);
+    console.log('CATEGORIES:', categories);
+    console.log('BRANDS:', brands);
+    console.log('OCCASIONS:', occasions);
+    console.log('IS ADMIN:', isAdmin);
+    console.log('IS VENDOR:', isVendor);
     try {
       const fd = new FormData();
 
       // ================= PRODUCT =================
-
-      fd.append('vendorId', Number(form.vendorId));
+      if (isAdmin) {
+        fd.append('vendorId', Number(form.vendorId));
+      }
 
       fd.append('categoryId', Number(form.categoryId));
 
@@ -394,7 +471,6 @@ export default function Products() {
 
     setVariants(copy);
   };
-
   return (
     <Box p={isMobile ? 2 : 3}>
       <Stack direction="row" justifyContent="space-between" mb={3}>
@@ -403,6 +479,68 @@ export default function Products() {
         <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAdd}>
           Add Product
         </Button>
+      </Stack>
+      {isAdmin && showPending && (
+        <Box mb={8}>
+          <Typography variant="h5" mb={3}>
+            Pending Products
+          </Typography>
+
+          <Stack spacing={2}>
+            {pendingProducts.map((product) => (
+              <Card key={product.id} sx={{ p: 2 }}>
+                <Stack direction={isMobile ? 'column' : 'row'} spacing={2} alignItems="center">
+                  <Box flex={1}>
+                    <Typography fontWeight="bold">{product.nameEn}</Typography>
+
+                    <Typography>{product.nameAr}</Typography>
+
+                    <Typography>${product.price}</Typography>
+                  </Box>
+
+                  <Stack direction="row" spacing={1}>
+                    <Button color="success" variant="contained" onClick={() => approveProduct(product.id)}>
+                      Approve
+                    </Button>
+
+                    <Button color="error" variant="contained" onClick={() => rejectProduct(product.id)}>
+                      Reject
+                    </Button>
+                  </Stack>
+                </Stack>
+              </Card>
+            ))}
+          </Stack>
+        </Box>
+      )}
+      <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+        {isAdmin && (
+          <Button
+            startIcon={<HourglassTopIcon />}
+            onClick={() => setShowPending(!showPending)}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 600,
+              px: 2.5,
+              py: 1,
+              borderRadius: '10px',
+              border: '3px solid',
+              borderColor: '#2C687B',
+              marginBottom: '10px',
+              color: '#2C687B',
+              backgroundColor: 'transparent',
+              transition: '0.3s',
+
+              '&:hover': {
+                backgroundColor: 'rgba(255, 152, 0, 0.08)',
+                borderColor: '#2C687B',
+                transform: 'translateY(-2px)'
+              }
+            }}
+          >
+            Pending Requests
+          </Button>
+        )}
       </Stack>
 
       <Stack spacing={2}>
@@ -486,14 +624,15 @@ export default function Products() {
             <TextField label="Price" name="price" value={form.price} onChange={handleChange} fullWidth />
 
             {/* SELECTS */}
-
-            <TextField select label="Vendor" name="vendorId" value={form.vendorId} onChange={handleChange} fullWidth>
-              {vendors.map((vendor) => (
-                <MenuItem key={vendor.id} value={vendor.id}>
-                  {vendor.name || vendor.shopNameEn}
-                </MenuItem>
-              ))}
-            </TextField>
+            {isAdmin && (
+              <TextField select label="Vendor" name="vendorId" value={form.vendorId} onChange={handleChange} fullWidth>
+                {vendors.map((vendor) => (
+                  <MenuItem key={vendor.id} value={vendor.id}>
+                    {vendor.name || vendor.shopNameEn}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
 
             <TextField select label="Category" name="categoryId" value={form.categoryId} onChange={handleChange} fullWidth>
               {categories.map((category) => (

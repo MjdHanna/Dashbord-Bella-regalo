@@ -31,7 +31,6 @@ export default function AuthLogin() {
 
   const token = useSelector(selectToken);
 
-  // ✅ redirect فوري بدون delay
   useEffect(() => {
     if (token) {
       navigate('/dashboard/default', { replace: true });
@@ -39,11 +38,16 @@ export default function AuthLogin() {
   }, [token, navigate]);
 
   const formik = useFormik({
-    initialValues: { email: '', password: '' },
+    initialValues: {
+      email: '',
+      password: ''
+    },
+
     validationSchema: Yup.object({
       email: Yup.string().email('Invalid email').required('Required'),
       password: Yup.string().required('Required')
     }),
+
     onSubmit: async (values) => {
       try {
         const res = await login(values).unwrap();
@@ -75,42 +79,71 @@ export default function AuthLogin() {
   });
 
   const inputStyle = {
-    borderRadius: 3,
-    background: '#f9fafb',
-    '& fieldset': { borderColor: '#e5e7eb' },
-    '&:hover fieldset': { borderColor: '#6366f1' },
+    borderRadius: '14px',
+    background: '#f8fbfc',
+    transition: '0.3s',
+
+    '& fieldset': {
+      borderColor: '#d9e5e7'
+    },
+
+    '&:hover fieldset': {
+      borderColor: '#4f8b8d'
+    },
+
     '&.Mui-focused fieldset': {
-      borderColor: '#6366f1',
-      boxShadow: '0 0 0 3px rgba(99,102,241,0.15)'
+      borderColor: '#4f8b8d',
+      boxShadow: '0 0 0 4px rgba(79,139,141,0.12)'
     }
   };
 
   return (
     <form onSubmit={formik.handleSubmit}>
-      <Stack spacing={2}>
+      <Stack spacing={3}>
         {/* Email */}
         <Box>
-          <InputLabel>Email</InputLabel>
+          <InputLabel
+            sx={{
+              mb: 1,
+              color: '#546e7a',
+              fontWeight: 600
+            }}
+          >
+            Email Address
+          </InputLabel>
+
           <OutlinedInput
             fullWidth
             name="email"
+            placeholder="Enter your email"
             value={formik.values.email}
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
             sx={inputStyle}
           />
-          <Typography color="error" variant="caption">
+
+          <Typography color="error" variant="caption" sx={{ mt: 0.5 }}>
             {formik.touched.email && formik.errors.email}
           </Typography>
         </Box>
 
         {/* Password */}
         <Box>
-          <InputLabel>Password</InputLabel>
+          <InputLabel
+            sx={{
+              mb: 1,
+              color: '#546e7a',
+              fontWeight: 600
+            }}
+          >
+            Password
+          </InputLabel>
+
           <OutlinedInput
             fullWidth
             type={showPassword ? 'text' : 'password'}
             name="password"
+            placeholder="Enter your password"
             value={formik.values.password}
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
@@ -121,31 +154,37 @@ export default function AuthLogin() {
               </InputAdornment>
             }
           />
-          <Typography color="error" variant="caption">
+
+          <Typography color="error" variant="caption" sx={{ mt: 0.5 }}>
             {formik.touched.password && formik.errors.password}
           </Typography>
         </Box>
 
-        {/* Button */}
+        {/* login button */}
         <Button
           fullWidth
           type="submit"
           disabled={formik.isSubmitting}
           sx={{
             mt: 1,
-            borderRadius: 3,
-            py: 1.3,
-            fontWeight: 600,
-            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+            py: 1.5,
+            borderRadius: '14px',
+            fontWeight: 700,
+            fontSize: '15px',
+            textTransform: 'none',
+            background: 'linear-gradient(135deg, #2f5f62 0%, #4f8b8d 100%)',
             color: '#fff',
-            boxShadow: '0 10px 25px rgba(99,102,241,0.3)',
+            boxShadow: '0 10px 25px rgba(47,95,98,0.25)',
+            transition: '0.3s',
+
             '&:hover': {
               transform: 'translateY(-2px)',
-              boxShadow: '0 15px 35px rgba(99,102,241,0.4)'
+              background: 'linear-gradient(135deg, #264d50 0%, #41797b 100%)',
+              boxShadow: '0 14px 30px rgba(47,95,98,0.35)'
             }
           }}
         >
-          {formik.isSubmitting ? 'Signing in...' : 'Login'}
+          {formik.isSubmitting ? 'Signing in...' : 'Log In'}
         </Button>
       </Stack>
     </form>

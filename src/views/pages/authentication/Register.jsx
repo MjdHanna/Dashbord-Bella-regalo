@@ -16,7 +16,6 @@ import AuthRegister from '../auth-forms/AuthRegister';
 
 export default function Register() {
   const downMD = useMediaQuery((theme) => theme.breakpoints.down('md'));
-
   return (
     <AuthWrapper1>
       <Box

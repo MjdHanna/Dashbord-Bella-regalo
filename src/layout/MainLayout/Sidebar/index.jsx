@@ -14,7 +14,7 @@ import MiniDrawerStyled from './MiniDrawerStyled';
 
 import useConfig from 'hooks/useConfig';
 import { drawerWidth } from 'store/constant';
-import SimpleBar from 'ui-component/third-party/SimpleBar';
+// import SimpleBar from 'ui-component/third-party/SimpleBar';
 
 import { handlerDrawerOpen, useGetMenuMaster } from 'api/menu';
 
@@ -59,10 +59,10 @@ function Sidebar() {
             {drawerOpen && drawerContent}
           </Box>
         ) : (
-          <SimpleBar sx={{ height: 'calc(100vh - 90px)', ...drawerSX }}>
+          <Box sx={{ ...drawerSX }}>
             <MenuList />
             {drawerOpen && drawerContent}
-          </SimpleBar>
+          </Box>
         )}
       </>
     );

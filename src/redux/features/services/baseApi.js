@@ -187,7 +187,7 @@ export const baseApi = createApi({
     // ================= ORDERS =================
 
     getOrders: builder.query({
-      query: () => 'admin/admin-orders',
+      query: (role) => (role === 'vendor' ? 'vendor/orders' : 'admin/admin-orders'),
       providesTags: ['Orders']
     }),
 
@@ -290,9 +290,10 @@ export const baseApi = createApi({
 
     // ================= PRODUCTS =================
 
+    // ===== ADMIN PRODUCTS =====
     getProducts: builder.query({
       query: () => 'admin/admin-products',
-      transformResponse: (response) => response.data,
+      transformResponse: (response) => response.data || [],
       providesTags: ['Products']
     }),
 
@@ -322,6 +323,85 @@ export const baseApi = createApi({
       query: (id) => ({
         url: `admin/admin-delete-product/${id}`,
         method: 'DELETE'
+      }),
+      invalidatesTags: ['Products']
+    }),
+
+    // ===== VENDOR PRODUCTS =====
+    // ===== VENDOR HELPERS =====
+
+    // Vendor Categories
+    getVendorCategories: builder.query({
+      query: () => 'vendor/categories',
+      transformResponse: (response) => response.data || response || [],
+      providesTags: ['Categories']
+    }),
+
+    // Vendor Brands
+    getVendorBrands: builder.query({
+      query: () => 'vendor/brands',
+      transformResponse: (response) => response.data || response || [],
+      providesTags: ['Brands']
+    }),
+
+    // Vendor Occasions
+    getVendorOccasions: builder.query({
+      query: () => 'vendor/occasions',
+      transformResponse: (response) => response.data || response || [],
+      providesTags: ['Occasions']
+    }),
+    getVendorProducts: builder.query({
+      query: () => 'vendor/products',
+      transformResponse: (response) => response.data || response || [],
+      providesTags: ['Products']
+    }),
+
+    createVendorProduct: builder.mutation({
+      query: (formData) => ({
+        url: 'vendor/add-products',
+        method: 'POST',
+        body: formData
+      }),
+      invalidatesTags: ['Products']
+    }),
+
+    updateVendorProduct: builder.mutation({
+      query: ({ id, formData }) => ({
+        url: `vendor/edit-product/${id}`,
+        method: 'POST',
+        body: formData
+      }),
+      invalidatesTags: ['Products']
+    }),
+
+    deleteVendorProduct: builder.mutation({
+      query: (id) => ({
+        url: `vendor/delete-product/${id}`,
+        method: 'DELETE'
+      }),
+      invalidatesTags: ['Products']
+    }),
+
+    // ===== PENDING PRODUCTS =====
+
+    getPendingProducts: builder.query({
+      query: () => 'admin/admin-pending-products',
+      transformResponse: (response) => response.data || response || [],
+      providesTags: ['Products']
+    }),
+
+    approveProduct: builder.mutation({
+      query: (id) => ({
+        url: `admin/admin-product/${id}/approve`,
+        method: 'PATCH'
+      }),
+      invalidatesTags: ['Products']
+    }),
+
+    rejectProduct: builder.mutation({
+      query: (id) => ({
+        url: `admin/admin-product/${id}/reject`,
+        method: 'PATCH'
       }),
       invalidatesTags: ['Products']
     })
@@ -365,6 +445,16 @@ export const {
   useCreateDriverMutation,
   useUpdateDriverMutation,
   useDeleteDriverMutation,
+  useGetVendorCategoriesQuery,
+  useGetVendorBrandsQuery,
+  useGetVendorOccasionsQuery,
+  useGetVendorProductsQuery,
+  useCreateVendorProductMutation,
+  useUpdateVendorProductMutation,
+  useDeleteVendorProductMutation,
+  useGetPendingProductsQuery,
+  useApproveProductMutation,
+  useRejectProductMutation,
   useGetProductsQuery,
   useGetProductByIdQuery,
   useCreateProductMutation,
