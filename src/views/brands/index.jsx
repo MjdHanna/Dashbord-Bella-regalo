@@ -1,5 +1,21 @@
 import React, { useState } from 'react';
-import { Box, Button, Card, Typography, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Stack, Avatar } from '@mui/material';
+import {
+  Box,
+  Button,
+  Card,
+  Typography,
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Stack,
+  Avatar,
+  CircularProgress,
+  Snackbar,
+  Alert
+} from '@mui/material';
 
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -7,6 +23,7 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
+import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 
 import {
   useGetBrandsQuery,
@@ -23,12 +40,21 @@ export default function Brands() {
 
   const { data, isLoading } = useGetBrandsQuery();
 
-  const [createBrand] = useCreateBrandMutation();
-  const [updateBrand] = useUpdateBrandMutation();
-  const [deleteBrand] = useDeleteBrandMutation();
+  const [createBrand, { isLoading: isCreating }] = useCreateBrandMutation();
+  const [updateBrand, { isLoading: isUpdating }] = useUpdateBrandMutation();
+  const [deleteBrand, { isLoading: isDeleting }] = useDeleteBrandMutation();
+
+  const isSaving = isCreating || isUpdating;
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedDeleteId, setSelectedDeleteId] = useState(null);
+
+  const [toast, setToast] = useState({
+    open: false,
+    message: ''
+  });
 
   const [form, setForm] = useState({
     nameEn: '',
@@ -55,10 +81,10 @@ export default function Brands() {
 
     if (item) {
       setForm({
-        nameEn: item.nameEn,
-        nameAr: item.nameAr,
-        descriptionEn: item.descriptionEn,
-        descriptionAr: item.descriptionAr,
+        nameEn: item.nameEn || '',
+        nameAr: item.nameAr || '',
+        descriptionEn: item.descriptionEn || '',
+        descriptionAr: item.descriptionAr || '',
         logo: null
       });
     } else {
@@ -72,6 +98,17 @@ export default function Brands() {
     }
 
     setOpen(true);
+  };
+
+  const handleClose = () => {
+    if (isSaving) return;
+    setOpen(false);
+    setEditing(null);
+  };
+
+  const handleCloseToast = (event, reason) => {
+    if (reason === 'clickaway') return;
+    setToast((prev) => ({ ...prev, open: false }));
   };
 
   const handleSubmit = async () => {
@@ -91,17 +128,38 @@ export default function Brands() {
       setOpen(false);
       setEditing(null);
     } catch (err) {
-      console.error(err);
+      const errorMessage = err?.data?.message || err?.error || 'حدث خطأ أثناء حفظ العلامة التجارية';
+      setToast({
+        open: true,
+        message: errorMessage
+      });
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this brand?')) return;
+  const handleOpenDeleteDialog = (id) => {
+    setSelectedDeleteId(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleCloseDeleteDialog = () => {
+    if (isDeleting) return;
+    setDeleteDialogOpen(false);
+    setSelectedDeleteId(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedDeleteId) return;
 
     try {
-      await deleteBrand(id).unwrap();
+      await deleteBrand(selectedDeleteId).unwrap();
+      handleCloseDeleteDialog();
     } catch (err) {
-      console.error(err);
+      const errorMessage = err?.data?.message || err?.error || 'حدث خطأ أثناء حذف العلامة التجارية';
+      setToast({
+        open: true,
+        message: errorMessage
+      });
+      handleCloseDeleteDialog();
     }
   };
 
@@ -109,12 +167,23 @@ export default function Brands() {
 
   return (
     <Box p={isMobile ? 2 : 3}>
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={4000}
+        onClose={handleCloseToast}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseToast} severity="error" variant="filled" sx={{ width: '100%' }}>
+          {toast.message}
+        </Alert>
+      </Snackbar>
+
       <Stack direction={isMobile ? 'column' : 'row'} justifyContent="space-between" spacing={2} mb={4}>
         <Typography variant={isMobile ? 'h5' : 'h4'} fontWeight={700}>
           🏷️ Brands
         </Typography>
 
-        <Button fullWidth={isMobile} variant="contained" startIcon={<AddIcon />} onClick={() => handleOpen()}>
+        <Button fullWidth={isMobile} variant="contained" startIcon={<AddIcon />} onClick={() => handleOpen()} sx={{ borderRadius: 3 }}>
           Add Brand
         </Button>
       </Stack>
@@ -161,7 +230,7 @@ export default function Brands() {
                 variant="contained"
                 color="error"
                 startIcon={<DeleteIcon />}
-                onClick={() => handleDelete(item.id)}
+                onClick={() => handleOpenDeleteDialog(item.id)}
               >
                 Delete
               </Button>
@@ -169,14 +238,14 @@ export default function Brands() {
           </Card>
         ))}
       </Stack>
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
+      <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
         <DialogTitle>{editing ? 'Edit Brand' : 'Add Brand'}</DialogTitle>
 
         <DialogContent sx={{ pt: 2 }}>
           <Stack spacing={2} mt={1}>
-            <TextField fullWidth label="Name EN" name="nameEn" value={form.nameEn} onChange={handleChange} />
+            <TextField fullWidth label="Name EN" name="nameEn" value={form.nameEn} onChange={handleChange} disabled={isSaving} />
 
-            <TextField fullWidth label="Name AR" name="nameAr" value={form.nameAr} onChange={handleChange} />
+            <TextField fullWidth label="Name AR" name="nameAr" value={form.nameAr} onChange={handleChange} disabled={isSaving} />
 
             <TextField
               fullWidth
@@ -186,6 +255,7 @@ export default function Brands() {
               name="descriptionEn"
               value={form.descriptionEn}
               onChange={handleChange}
+              disabled={isSaving}
             />
 
             <TextField
@@ -196,20 +266,87 @@ export default function Brands() {
               name="descriptionAr"
               value={form.descriptionAr}
               onChange={handleChange}
+              disabled={isSaving}
             />
 
-            <Button variant="outlined" component="label">
-              Upload Logo
+            <Button variant="outlined" component="label" disabled={isSaving}>
+              {form.logo ? form.logo.name : 'Upload Logo'}
               <input hidden type="file" name="logo" onChange={handleChange} />
             </Button>
           </Stack>
         </DialogContent>
 
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={handleClose} disabled={isSaving}>
+            Cancel
+          </Button>
 
-          <Button variant="contained" onClick={handleSubmit}>
-            {editing ? 'Update' : 'Create'}
+          <Button
+            variant="contained"
+            onClick={handleSubmit}
+            disabled={isSaving}
+            startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : null}
+          >
+            {isSaving ? 'Saving...' : editing ? 'Update' : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleCloseDeleteDialog}
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            p: 1,
+            maxWidth: 400,
+            width: '100%'
+          }
+        }}
+      >
+        <DialogTitle sx={{ textAlign: 'center', pt: 3 }}>
+          <Avatar
+            sx={{
+              bgcolor: theme.palette.error.light,
+              color: theme.palette.error.main,
+              width: 56,
+              height: 56,
+              margin: '0 auto 12px auto'
+            }}
+          >
+            <WarningAmberRoundedIcon fontSize="large" />
+          </Avatar>
+          <Typography variant="h6" fontWeight={700}>
+            Confirm brand deletion
+          </Typography>
+        </DialogTitle>
+
+        <DialogContent sx={{ textAlign: 'center' }}>
+          <DialogContentText color="text.secondary">
+            Are you sure you want to delete this brand? You will not be able to restore it after deletion.
+          </DialogContentText>
+        </DialogContent>
+
+        <DialogActions sx={{ justifyContent: 'center', gap: 1, pb: 2, px: 3 }}>
+          <Button
+            onClick={handleCloseDeleteDialog}
+            variant="outlined"
+            color="inherit"
+            fullWidth
+            disabled={isDeleting}
+            sx={{ borderRadius: 2 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmDelete}
+            variant="contained"
+            color="error"
+            fullWidth
+            disabled={isDeleting}
+            startIcon={isDeleting ? <CircularProgress size={20} color="inherit" /> : null}
+            sx={{ borderRadius: 2 }}
+          >
+            {isDeleting ? 'Deleting...' : 'Delete'}
           </Button>
         </DialogActions>
       </Dialog>

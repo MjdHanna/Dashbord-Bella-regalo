@@ -1,10 +1,28 @@
 import React, { useState } from 'react';
 
-import { Box, Typography, Stack, Card, Avatar, Button, Chip, useMediaQuery, Snackbar, Alert, CircularProgress } from '@mui/material';
+import {
+  Box,
+  Typography,
+  Stack,
+  Card,
+  Avatar,
+  Button,
+  Chip,
+  useMediaQuery,
+  Snackbar,
+  Alert,
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions
+} from '@mui/material';
 
 import DeleteIcon from '@mui/icons-material/Delete';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import PhoneIcon from '@mui/icons-material/Phone';
+import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 
 import { useTheme } from '@mui/material/styles';
 
@@ -14,6 +32,7 @@ import {
   useApproveVendorMutation,
   useRejectVendorMutation
 } from '../../redux/features/services/baseApi';
+import SpinnerLoader from '../../ui-component/SpinnerLoader';
 
 export default function Vendors() {
   const theme = useTheme();
@@ -29,6 +48,8 @@ export default function Vendors() {
 
   const [loadingId, setLoadingId] = useState(null);
   const [actionType, setActionType] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedDeleteId, setSelectedDeleteId] = useState(null);
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -43,9 +64,21 @@ export default function Vendors() {
       severity
     });
   };
+  const handleOpenDeleteDialog = (id) => {
+    setSelectedDeleteId(id);
+    setDeleteDialogOpen(true);
+  };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this vendor?')) return;
+  const handleCloseDeleteDialog = () => {
+    setDeleteDialogOpen(false);
+    setSelectedDeleteId(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedDeleteId) return;
+
+    const id = selectedDeleteId;
+    handleCloseDeleteDialog();
 
     try {
       setLoadingId(id);
@@ -56,7 +89,6 @@ export default function Vendors() {
       showSnackbar(res?.message || 'Vendor deleted successfully');
     } catch (err) {
       showSnackbar(err?.data?.message || 'Failed to delete vendor', 'error');
-
       console.error(err);
     } finally {
       setLoadingId(null);
@@ -100,13 +132,7 @@ export default function Vendors() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <Typography p={3} fontWeight={600}>
-        Loading vendors...
-      </Typography>
-    );
-  }
+  if (isLoading) return <SpinnerLoader text="Loading Vendors..." />;
 
   return (
     <Box
@@ -180,7 +206,6 @@ export default function Vendors() {
             </Box>
 
             <Stack direction={isMobile ? 'column' : 'row'} spacing={1} width={isMobile ? '100%' : 'auto'}>
-
               {vendor.status === 'approved' && (
                 <Chip
                   label="Approved"
@@ -237,7 +262,7 @@ export default function Vendors() {
                 color="error"
                 startIcon={!(loadingId === vendor.id && actionType === 'delete') && <DeleteIcon />}
                 disabled={loadingId === vendor.id && actionType === 'delete'}
-                onClick={() => handleDelete(vendor.id)}
+                onClick={() => handleOpenDeleteDialog(vendor.id)}
                 sx={{
                   borderRadius: 3
                 }}
@@ -248,6 +273,50 @@ export default function Vendors() {
           </Card>
         ))}
       </Stack>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleCloseDeleteDialog}
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            p: 1,
+            maxWidth: 400,
+            width: '100%'
+          }
+        }}
+      >
+        <DialogTitle sx={{ textAlign: 'center', pt: 3 }}>
+          <Avatar
+            sx={{
+              bgcolor: theme.palette.error.light,
+              color: theme.palette.error.main,
+              width: 56,
+              height: 56,
+              margin: '0 auto 12px auto'
+            }}
+          >
+            <WarningAmberRoundedIcon fontSize="large" />
+          </Avatar>
+          <Typography variant="h6" fontWeight={700}>
+            Confirm store deletion
+          </Typography>
+        </DialogTitle>
+
+        <DialogContent sx={{ textAlign: 'center' }}>
+          <DialogContentText color="text.secondary">
+            Are you sure you want to delete this seller/store? You cannot undo this action later.
+          </DialogContentText>
+        </DialogContent>
+
+        <DialogActions sx={{ justifyContent: 'center', gap: 1, pb: 2, px: 3 }}>
+          <Button onClick={handleCloseDeleteDialog} variant="outlined" color="inherit" fullWidth sx={{ borderRadius: 2 }}>
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmDelete} variant="contained" color="error" fullWidth autoFocus sx={{ borderRadius: 2 }}>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={snackbar.open}

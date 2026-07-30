@@ -9,15 +9,20 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogContentText,
   DialogActions,
   MenuItem,
   Divider,
-  IconButton
+  IconButton,
+  CircularProgress,
+  Snackbar,
+  Alert
 } from '@mui/material';
 
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -46,6 +51,7 @@ import {
 
 import SpinnerLoader from '../../ui-component/SpinnerLoader';
 import HourglassTopIcon from '@mui/icons-material/HourglassTop';
+
 export default function Products() {
   const user = useSelector((state) => state.auth.user);
 
@@ -55,9 +61,18 @@ export default function Products() {
   const [currentId, setCurrentId] = useState(null);
   const isAdmin = user?.accountType === 'admin';
   const isVendor = user?.accountType === 'vendor';
+  const [toast, setToast] = useState({
+    open: false,
+    message: '',
+    severity: 'error'
+  });
+
+  const handleCloseToast = (event, reason) => {
+    if (reason === 'clickaway') return;
+    setToast((prev) => ({ ...prev, open: false }));
+  };
 
   const { data: adminProducts = [], isLoading: adminLoading } = useGetProductsQuery(undefined, { skip: !isAdmin });
-
   const { data: vendorProducts = [], isLoading: vendorLoading } = useGetVendorProductsQuery(undefined, { skip: !isVendor });
 
   const products = isAdmin ? adminProducts : vendorProducts;
@@ -70,15 +85,12 @@ export default function Products() {
   });
 
   const [approveProduct] = useApproveProductMutation();
-
   const [rejectProduct] = useRejectProductMutation();
 
   const { data: vendorsRes } = useGetVendorsQuery(undefined, {
     skip: !isAdmin
   });
   const vendors = isAdmin ? vendorsRes?.data || vendorsRes || [] : [];
-
-  // ================= CATEGORIES =================
 
   const { data: adminCategoriesRes } = useGetCategoriesQuery(undefined, {
     skip: !isAdmin
@@ -90,8 +102,6 @@ export default function Products() {
 
   const categories = isAdmin ? adminCategoriesRes?.data || adminCategoriesRes || [] : vendorCategoriesRes || [];
 
-  // ================= BRANDS =================
-
   const { data: adminBrandsRes } = useGetBrandsQuery(undefined, {
     skip: !isAdmin
   });
@@ -101,8 +111,6 @@ export default function Products() {
   });
 
   const brands = isAdmin ? adminBrandsRes?.data || adminBrandsRes || [] : vendorBrandsRes || [];
-
-  // ================= OCCASIONS =================
 
   const { data: adminOccasionsRes } = useGetOccasionsQuery(undefined, {
     skip: !isAdmin
@@ -118,23 +126,24 @@ export default function Products() {
     skip: !currentId
   });
 
-  const [createAdminProduct] = useCreateProductMutation();
-  const [createVendorProduct] = useCreateVendorProductMutation();
-
+  const [createAdminProduct, { isLoading: isCreatingAdmin }] = useCreateProductMutation();
+  const [createVendorProduct, { isLoading: isCreatingVendor }] = useCreateVendorProductMutation();
   const createProduct = isAdmin ? createAdminProduct : createVendorProduct;
 
-  const [updateAdminProduct] = useUpdateProductMutation();
-  const [updateVendorProduct] = useUpdateVendorProductMutation();
-
+  const [updateAdminProduct, { isLoading: isUpdatingAdmin }] = useUpdateProductMutation();
+  const [updateVendorProduct, { isLoading: isUpdatingVendor }] = useUpdateVendorProductMutation();
   const updateProduct = isAdmin ? updateAdminProduct : updateVendorProduct;
 
   const [deleteAdminProduct] = useDeleteProductMutation();
   const [deleteVendorProduct] = useDeleteVendorProductMutation();
-
   const deleteProduct = isAdmin ? deleteAdminProduct : deleteVendorProduct;
 
   const [open, setOpen] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedDeleteId, setSelectedDeleteId] = useState(null);
+
+  const isSaving = isEdit ? (isAdmin ? isUpdatingAdmin : isUpdatingVendor) : isAdmin ? isCreatingAdmin : isCreatingVendor;
 
   const initialForm = {
     vendorId: '',
@@ -150,9 +159,7 @@ export default function Products() {
   };
 
   const [form, setForm] = useState(initialForm);
-
   const [featuresEn, setFeaturesEn] = useState([{ key: '', value: '' }]);
-
   const [featuresAr, setFeaturesAr] = useState([{ key: '', value: '' }]);
 
   const [variants, setVariants] = useState([
@@ -183,8 +190,6 @@ export default function Products() {
         images: []
       });
 
-      // ================= FEATURES =================
-
       const enFeatures =
         product.featuresEnglish && typeof product.featuresEnglish === 'object'
           ? Object.entries(product.featuresEnglish).map(([key, value]) => ({
@@ -204,9 +209,6 @@ export default function Products() {
           : [{ key: '', value: '' }];
 
       setFeaturesAr(arFeatures);
-
-      // Variants
-      // ================= VARIANTS =================
 
       if (data.variants?.length) {
         setVariants(
@@ -245,15 +247,10 @@ export default function Products() {
 
   const handleOpenAdd = () => {
     setIsEdit(false);
-
     setCurrentId(null);
-
     setForm(initialForm);
-
     setFeaturesEn([{ key: '', value: '' }]);
-
     setFeaturesAr([{ key: '', value: '' }]);
-
     setVariants([
       {
         variantSku: '',
@@ -263,7 +260,6 @@ export default function Products() {
         attributesAr: [{ key: '', value: '' }]
       }
     ]);
-
     setOpen(true);
   };
 
@@ -274,41 +270,25 @@ export default function Products() {
   };
 
   const handleSubmit = async () => {
-    console.log('===== FORM DATA DEBUG =====');
-    console.log('FORM:', form);
-    console.log('CATEGORIES:', categories);
-    console.log('BRANDS:', brands);
-    console.log('OCCASIONS:', occasions);
-    console.log('IS ADMIN:', isAdmin);
-    console.log('IS VENDOR:', isVendor);
     try {
       const fd = new FormData();
 
-      // ================= PRODUCT =================
       if (isAdmin) {
         fd.append('vendorId', Number(form.vendorId));
       }
 
       fd.append('categoryId', Number(form.categoryId));
-
       fd.append('brandId', Number(form.brandId));
-      // ================= OCCASIONS =================
 
       form.occasionsIds.forEach((id) => {
         fd.append('occasionsIds[]', Number(id));
       });
 
-      // IMPORTANT
       fd.append('nameEn', form.productNameEn);
-
       fd.append('nameAr', form.productNameAr);
-
       fd.append('descriptionEn', form.productDescriptionEn);
-
       fd.append('descriptionAr', form.productDescriptionAr);
-
       fd.append('price', form.price !== '' ? Number(form.price) : '');
-      // ================= IMAGES =================
 
       if (form.images?.length) {
         form.images.forEach((image) => {
@@ -316,31 +296,22 @@ export default function Products() {
         });
       }
 
-      // ================= FEATURES EN =================
-
       featuresEn.forEach((item) => {
         if (item.key && item.value) {
           fd.append(`features[0][${item.key}]`, item.value);
         }
       });
 
-      // ================= FEATURES AR =================
-
       featuresAr.forEach((item) => {
         if (item.key && item.value) {
           fd.append(`featuresAr[0][${item.key}]`, item.value);
         }
       });
-      // ================= VARIANTS =================
 
       variants.forEach((variant, index) => {
         fd.append(`variants[${index}][variantSku]`, variant.variantSku || '');
-
         fd.append(`variants[${index}][price]`, Number(variant.variantPrice));
-
         fd.append(`variants[${index}][stockQuantity]`, variant.stockQuantity !== '' ? Number(variant.stockQuantity) : '');
-
-        // ================= ATTRIBUTES EN =================
 
         variant.attributesEn.forEach((attr) => {
           if (attr.key && attr.value) {
@@ -348,18 +319,12 @@ export default function Products() {
           }
         });
 
-        // ================= ATTRIBUTES AR =================
-
         variant.attributesAr.forEach((attr) => {
           if (attr.key && attr.value) {
             fd.append(`variants[${index}][attributesAr][${attr.key}]`, attr.value);
           }
         });
       });
-      // DEBUG
-      for (let pair of fd.entries()) {
-        console.log(pair[0], pair[1]);
-      }
 
       if (isEdit) {
         await updateProduct({
@@ -372,20 +337,42 @@ export default function Products() {
 
       setOpen(false);
     } catch (error) {
-      console.log(error);
+      console.error(error);
+      const errorMessage = error?.data?.message || error?.error || 'حدث خطأ أثناء الحفظ، يرجى المحاولة لاحقاً';
+      setToast({
+        open: true,
+        message: errorMessage,
+        severity: 'error'
+      });
     }
   };
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure?')) {
-      await deleteProduct(id);
+
+  const handleOpenDeleteDialog = (id) => {
+    setSelectedDeleteId(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (selectedDeleteId) {
+      try {
+        await deleteProduct(selectedDeleteId).unwrap();
+      } catch (error) {
+        console.error('Delete error:', error);
+        setToast({
+          open: true,
+          message: error?.data?.message || 'فشل حذف المنتج',
+          severity: 'error'
+        });
+      } finally {
+        setDeleteDialogOpen(false);
+        setSelectedDeleteId(null);
+      }
     }
   };
 
   const handleFeatureChange = (index, field, value, isArabic = false) => {
     const copy = isArabic ? [...featuresAr] : [...featuresEn];
-
     copy[index][field] = value;
-
     isArabic ? setFeaturesAr(copy) : setFeaturesEn(copy);
   };
 
@@ -399,56 +386,40 @@ export default function Products() {
 
   const removeFeature = (index, isArabic = false) => {
     const copy = isArabic ? [...featuresAr] : [...featuresEn];
-
     copy.splice(index, 1);
-
     isArabic ? setFeaturesAr(copy) : setFeaturesEn(copy);
   };
 
   const handleVariantChange = (index, field, value) => {
     const copy = [...variants];
-
     copy[index][field] = value;
-
     setVariants(copy);
   };
+
   const handleVariantAttributeChange = (variantIndex, attrIndex, field, value, isArabic = false) => {
     const copy = [...variants];
-
     const target = isArabic ? copy[variantIndex].attributesAr : copy[variantIndex].attributesEn;
-
     target[attrIndex][field] = value;
-
     setVariants(copy);
   };
 
   const addVariantAttribute = (variantIndex, isArabic = false) => {
     const copy = [...variants];
-
     if (isArabic) {
-      copy[variantIndex].attributesAr.push({
-        key: '',
-        value: ''
-      });
+      copy[variantIndex].attributesAr.push({ key: '', value: '' });
     } else {
-      copy[variantIndex].attributesEn.push({
-        key: '',
-        value: ''
-      });
+      copy[variantIndex].attributesEn.push({ key: '', value: '' });
     }
-
     setVariants(copy);
   };
 
   const removeVariantAttribute = (variantIndex, attrIndex, isArabic = false) => {
     const copy = [...variants];
-
     if (isArabic) {
       copy[variantIndex].attributesAr.splice(attrIndex, 1);
     } else {
       copy[variantIndex].attributesEn.splice(attrIndex, 1);
     }
-
     setVariants(copy);
   };
 
@@ -464,15 +435,26 @@ export default function Products() {
       }
     ]);
   };
+
   const removeVariant = (index) => {
     const copy = [...variants];
-
     copy.splice(index, 1);
-
     setVariants(copy);
   };
+
   return (
     <Box p={isMobile ? 2 : 3}>
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={5000}
+        onClose={handleCloseToast}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseToast} severity={toast.severity} variant="filled" sx={{ width: '100%' }}>
+          {toast.message}
+        </Alert>
+      </Snackbar>
+
       <Stack direction="row" justifyContent="space-between" mb={3}>
         <Typography variant="h4">Products</Typography>
 
@@ -480,6 +462,7 @@ export default function Products() {
           Add Product
         </Button>
       </Stack>
+
       {isAdmin && showPending && (
         <Box mb={8}>
           <Typography variant="h5" mb={3}>
@@ -492,9 +475,7 @@ export default function Products() {
                 <Stack direction={isMobile ? 'column' : 'row'} spacing={2} alignItems="center">
                   <Box flex={1}>
                     <Typography fontWeight="bold">{product.nameEn}</Typography>
-
                     <Typography>{product.nameAr}</Typography>
-
                     <Typography>${product.price}</Typography>
                   </Box>
 
@@ -502,7 +483,6 @@ export default function Products() {
                     <Button color="success" variant="contained" onClick={() => approveProduct(product.id)}>
                       Approve
                     </Button>
-
                     <Button color="error" variant="contained" onClick={() => rejectProduct(product.id)}>
                       Reject
                     </Button>
@@ -513,6 +493,7 @@ export default function Products() {
           </Stack>
         </Box>
       )}
+
       <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
         {isAdmin && (
           <Button
@@ -525,16 +506,16 @@ export default function Products() {
               py: 1,
               borderRadius: '10px',
               border: '3px solid',
-              borderColor: '#2C687B',
+              borderColor: '#631d41',
               marginBottom: '10px',
-              color: '#2C687B',
+              color: '#631d41',
               backgroundColor: 'transparent',
               transition: '0.3s',
-
               '&:hover': {
-                backgroundColor: 'rgba(255, 152, 0, 0.08)',
-                borderColor: '#2C687B',
-                transform: 'translateY(-2px)'
+                backgroundColor: '#7e2553',
+                borderColor: '#7e2553',
+                transform: 'translateY(-2px)',
+                color: 'white'
               }
             }}
           >
@@ -563,15 +544,10 @@ export default function Products() {
 
                 <Box flex={1}>
                   <Typography fontWeight="bold">{product.productNameEn || product.nameEn}</Typography>
-
                   <Typography>{product.productNameAr || product.nameAr}</Typography>
-
                   <Typography>💲 {product.price}</Typography>
-
                   <Typography>{product.categoryNameEn || product.category}</Typography>
-
                   <Typography>{product.brandNameEn || product.brand}</Typography>
-
                   <Typography>{product.shopNameEn || product.vendor}</Typography>
                 </Box>
 
@@ -580,7 +556,7 @@ export default function Products() {
                     Edit
                   </Button>
 
-                  <Button color="error" startIcon={<DeleteIcon />} onClick={() => handleDelete(product.id)}>
+                  <Button color="error" startIcon={<DeleteIcon />} onClick={() => handleOpenDeleteDialog(product.id)}>
                     Delete
                   </Button>
                 </Stack>
@@ -590,15 +566,12 @@ export default function Products() {
         )}
       </Stack>
 
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="md">
+      <Dialog open={open} onClose={() => !isSaving && setOpen(false)} fullWidth maxWidth="md">
         <DialogTitle>{isEdit ? 'Edit Product' : 'Add Product'}</DialogTitle>
 
         <DialogContent>
           <Stack spacing={2} mt={2}>
-            {/* PRODUCT INFO */}
-
             <TextField label="Product Name EN" name="productNameEn" value={form.productNameEn} onChange={handleChange} fullWidth />
-
             <TextField label="Product Name AR" name="productNameAr" value={form.productNameAr} onChange={handleChange} fullWidth />
 
             <TextField
@@ -623,7 +596,6 @@ export default function Products() {
 
             <TextField label="Price" name="price" value={form.price} onChange={handleChange} fullWidth />
 
-            {/* SELECTS */}
             {isAdmin && (
               <TextField select label="Vendor" name="vendorId" value={form.vendorId} onChange={handleChange} fullWidth>
                 {vendors.map((vendor) => (
@@ -649,6 +621,7 @@ export default function Products() {
                 </MenuItem>
               ))}
             </TextField>
+
             <TextField
               select
               label="Occasions"
@@ -672,8 +645,6 @@ export default function Products() {
               ))}
             </TextField>
 
-            {/* IMAGES */}
-
             <input
               type="file"
               multiple
@@ -686,8 +657,6 @@ export default function Products() {
             />
 
             <Divider />
-
-            {/* VARIANTS */}
 
             <Typography variant="h6">Variants</Typography>
 
@@ -717,8 +686,6 @@ export default function Products() {
                     />
                   </Stack>
 
-                  {/* ATTRIBUTES EN */}
-
                   <Typography variant="subtitle1">Attributes EN</Typography>
 
                   {variant.attributesEn.map((attr, attrIndex) => (
@@ -746,8 +713,6 @@ export default function Products() {
                   <Button startIcon={<AddIcon />} onClick={() => addVariantAttribute(index)}>
                     Add Attribute EN
                   </Button>
-
-                  {/* ATTRIBUTES AR */}
 
                   <Typography variant="subtitle1">Attributes AR</Typography>
 
@@ -792,8 +757,6 @@ export default function Products() {
 
             <Divider />
 
-            {/* FEATURES EN */}
-
             <Typography variant="h6">Features EN</Typography>
 
             {featuresEn.map((feature, index) => (
@@ -818,8 +781,6 @@ export default function Products() {
             </Button>
 
             <Divider />
-
-            {/* FEATURES AR */}
 
             <Typography variant="h6">Features AR</Typography>
 
@@ -852,10 +813,82 @@ export default function Products() {
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={() => setOpen(false)} disabled={isSaving}>
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={handleSubmit} disabled={isSaving}>
+            {isSaving ? <CircularProgress size={24} color="inherit" /> : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-          <Button variant="contained" onClick={handleSubmit}>
-            Save
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '16px',
+            p: 1,
+            textAlign: 'center'
+          }
+        }}
+      >
+        <DialogContent sx={{ pt: 3 }}>
+          <Box
+            sx={{
+              width: '60px',
+              height: '60px',
+              borderRadius: '50%',
+              backgroundColor: '#fee2e2',
+              color: '#dc2626',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px auto'
+            }}
+          >
+            <WarningAmberRoundedIcon sx={{ fontSize: 36 }} />
+          </Box>
+
+          <Typography variant="h6" fontWeight="bold" gutterBottom>
+            Confirm Delete
+          </Typography>
+
+          <DialogContentText color="text.secondary">
+            Are you sure you want to delete this product? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+
+        <DialogActions sx={{ justifyContent: 'center', gap: 1, pb: 2, px: 3 }}>
+          <Button
+            onClick={() => setDeleteDialogOpen(false)}
+            variant="outlined"
+            fullWidth
+            sx={{
+              borderRadius: '8px',
+              borderColor: '#e5e7eb',
+              color: '#374151',
+              '&:hover': { borderColor: '#9ca3af', backgroundColor: '#f9fafb' }
+            }}
+          >
+            Cancel
+          </Button>
+
+          <Button
+            onClick={handleConfirmDelete}
+            variant="contained"
+            color="error"
+            disableElevation
+            fullWidth
+            sx={{
+              borderRadius: '8px',
+              backgroundColor: '#dc2626',
+              '&:hover': { backgroundColor: '#b91c1c' }
+            }}
+          >
+            Delete
           </Button>
         </DialogActions>
       </Dialog>

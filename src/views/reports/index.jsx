@@ -1,9 +1,24 @@
-import React from 'react';
-import { Box, Card, Typography, Stack, Button, Avatar, Chip, useMediaQuery } from '@mui/material';
+import React, { useState } from 'react';
+import {
+  Box,
+  Card,
+  Typography,
+  Stack,
+  Button,
+  Avatar,
+  Chip,
+  useMediaQuery,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions
+} from '@mui/material';
 
 import DeleteIcon from '@mui/icons-material/Delete';
 import EmailIcon from '@mui/icons-material/Email';
 import PersonIcon from '@mui/icons-material/Person';
+import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 
 import { useTheme } from '@mui/material/styles';
 
@@ -18,11 +33,26 @@ export default function Reports() {
   const [deleteMessage] = useDeleteMessageMutation();
   const [markAsRead] = useMarkMessageAsReadMutation();
 
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedDeleteId, setSelectedDeleteId] = useState(null);
+
   const messages = Array.isArray(data?.data) ? data.data : [];
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this message?')) return;
-    await deleteMessage(id);
+  const handleOpenDeleteDialog = (id) => {
+    setSelectedDeleteId(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleCloseDeleteDialog = () => {
+    setDeleteDialogOpen(false);
+    setSelectedDeleteId(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (selectedDeleteId) {
+      await deleteMessage(selectedDeleteId);
+      handleCloseDeleteDialog();
+    }
   };
 
   const handleRead = async (item) => {
@@ -42,6 +72,7 @@ export default function Reports() {
 
         <Chip label={`${messages.length} messages`} color="primary" variant="outlined" />
       </Stack>
+
       <Stack spacing={2}>
         {messages.map((item) => {
           const isRead = Number(item.isRead) === 1;
@@ -105,7 +136,7 @@ export default function Reports() {
                   variant="contained"
                   color="error"
                   startIcon={<DeleteIcon />}
-                  onClick={() => handleDelete(item.id)}
+                  onClick={() => handleOpenDeleteDialog(item.id)}
                 >
                   Delete
                 </Button>
@@ -114,6 +145,50 @@ export default function Reports() {
           );
         })}
       </Stack>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleCloseDeleteDialog}
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            p: 1,
+            maxWidth: 400,
+            width: '100%'
+          }
+        }}
+      >
+        <DialogTitle sx={{ textAlign: 'center', pt: 3 }}>
+          <Avatar
+            sx={{
+              bgcolor: theme.palette.error.light,
+              color: theme.palette.error.main,
+              width: 56,
+              height: 56,
+              margin: '0 auto 12px auto'
+            }}
+          >
+            <WarningAmberRoundedIcon fontSize="large" />
+          </Avatar>
+          <Typography variant="h6" fontWeight={700}>
+            Confirm Deletion
+          </Typography>
+        </DialogTitle>
+
+        <DialogContent sx={{ textAlign: 'center' }}>
+          <DialogContentText color="text.secondary">
+            Are you sure you want to delete this message? You cannot undo this action later.
+          </DialogContentText>
+        </DialogContent>
+
+        <DialogActions sx={{ justifyContent: 'center', gap: 1, pb: 2, px: 3 }}>
+          <Button onClick={handleCloseDeleteDialog} variant="outlined" color="inherit" fullWidth sx={{ borderRadius: 2 }}>
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmDelete} variant="contained" color="error" fullWidth autoFocus sx={{ borderRadius: 2 }}>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

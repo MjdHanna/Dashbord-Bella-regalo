@@ -16,11 +16,11 @@ export function buildPalette(presetColor) {
 
   const lightColors = {
     primary: {
-      light: '#2C687B',
-      main: '#2C687B',
-      dark: '#c98b1f',
-      200: '#f9d78a',
-      800: '#a06b00'
+      light: '#a34876',
+      main: '#7e2553',
+      dark: '#580c35',
+      200: '#e3adca',
+      800: '#3d0021'
     },
     secondary: {
       light: '#eeeeee',
@@ -79,7 +79,6 @@ export function buildPalette(presetColor) {
       default: colors.paper
     }
   };
-
   const commonColor = { common: { black: colors.darkPaper, white: '#fff' } };
 
   const extendedLight = extendPaletteWithChannels(lightColors);

@@ -1,19 +1,15 @@
 import { Link } from 'react-router-dom';
-
 import useMediaQuery from '@mui/material/useMediaQuery';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 
-// project imports
 import AuthWrapper1 from './AuthWrapper1';
-
 import Logo from 'ui-component/Logo';
 import AuthFooter from 'ui-component/cards/AuthFooter';
 import AuthLogin from '../auth-forms/AuthLogin';
 
-// svg
-import DashboardSvg from '../../../assets/images/auth/Dashboard.gif.mp4';
+import DashboardBg from '../../../assets/images/auth/a.png';
 
 export default function Login() {
   const downMD = useMediaQuery((theme) => theme.breakpoints.down('md'));
@@ -33,14 +29,13 @@ export default function Login() {
           py: 4
         }}
       >
-        {/* background blur */}
         <Box
           sx={{
             position: 'absolute',
             width: 350,
             height: 350,
             borderRadius: '50%',
-            background: '#EAEFEF',
+            background: '#D4AF37',
             filter: 'blur(120px)',
             top: -100,
             left: -100
@@ -59,8 +54,6 @@ export default function Login() {
             right: -100
           }}
         />
-
-        {/* main card */}
         <Box
           sx={{
             width: '100%',
@@ -84,69 +77,56 @@ export default function Login() {
                 flex: 1,
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center',
-                px: { xs: 3, md: 8 },
-                py: { xs: 6, md: 8 },
+                justifyContent: 'space-between',
+                p: { xs: 4, md: 6 },
                 position: 'relative',
-                background: 'linear-gradient(180deg, #ffffff 0%, #f7fbfb 100%)'
+                overflow: 'hidden',
+                backgroundImage: ` url(${DashboardBg})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                color: '#ffffff'
               }}
             >
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: 30,
-                  left: 30
-                }}
-              >
+              <Box sx={{ zIndex: 2 }}>
                 <Link to="#">
                   <Logo />
                 </Link>
               </Box>
+              <Box sx={{ zIndex: 2, my: downMD ? 6 : 0 }}>
+                <Typography
+                  variant={downMD ? 'h5' : 'h3'}
+                  sx={{
+                    fontWeight: 700,
+                    color: '#ffffff',
+                    mb: 1.5,
+                    lineHeight: 1.3
+                  }}
+                >
+                  Deal making just got easier
+                </Typography>
 
+                <Typography
+                  sx={{
+                    color: 'rgba(255, 255, 255, 0.82)',
+                    maxWidth: 420,
+                    lineHeight: 1.7,
+                    fontSize: '15px'
+                  }}
+                >
+                  Manage your dashboard, analytics and business operations with a modern and powerful admin experience.
+                </Typography>
+              </Box>
               <Box
-                component="video"
-                src={DashboardSvg}
-                autoPlay
-                loop
-                muted
-                playsInline
                 sx={{
-                  width: '100%',
-                  maxWidth: 420,
-                  mb: 4,
-                  animation: 'float 4s ease-in-out infinite',
-                  background: 'transparent',
-                  objectFit: 'contain'
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  backgroundColor: '#ffffff',
+                  opacity: 0.5,
+                  zIndex: 2
                 }}
               />
-
-              <Typography
-                variant={downMD ? 'h5' : 'h4'}
-                sx={{
-                  fontWeight: 700,
-                  textAlign: 'center',
-                  color: '#263238',
-                  mb: 1
-                }}
-              >
-                Deal making just got easier
-              </Typography>
-
-              <Typography
-                sx={{
-                  textAlign: 'center',
-                  color: '#607d8b',
-                  maxWidth: 400,
-                  lineHeight: 1.7,
-                  fontSize: '15px'
-                }}
-              >
-                Manage your dashboard, analytics and business operations with a modern and powerful admin experience.
-              </Typography>
             </Box>
-
-            {/* RIGHT SIDE */}
             <Box
               sx={{
                 width: downMD ? '100%' : '420px',
@@ -155,8 +135,7 @@ export default function Login() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 px: { xs: 3, md: 5 },
-                py: { xs: 5, md: 8 },
-                borderLeft: downMD ? 'none' : '1px solid #eef2f7'
+                py: { xs: 5, md: 8 }
               }}
             >
               <Box sx={{ width: '100%', maxWidth: 340 }}>
@@ -164,7 +143,7 @@ export default function Login() {
                   variant="h3"
                   sx={{
                     fontWeight: 700,
-                    color: '#2f5f62',
+                    color: '#D4AF37',
                     mb: 1
                   }}
                 >
@@ -186,8 +165,6 @@ export default function Login() {
             </Box>
           </Stack>
         </Box>
-
-        {/* footer */}
         <Box
           sx={{
             position: 'absolute',
@@ -198,23 +175,6 @@ export default function Login() {
         >
           <AuthFooter />
         </Box>
-
-        {/* animation */}
-        <style>
-          {`
-            @keyframes float {
-              0% {
-                transform: translateY(0px);
-              }
-              50% {
-                transform: translateY(-10px);
-              }
-              100% {
-                transform: translateY(0px);
-              }
-            }
-          `}
-        </style>
       </Box>
     </AuthWrapper1>
   );

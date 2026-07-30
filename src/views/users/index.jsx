@@ -12,17 +12,22 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  useMediaQuery
+  useMediaQuery,
+  IconButton,
+  CircularProgress,
+  Snackbar,
+  Alert
 } from '@mui/material';
 
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import PersonIcon from '@mui/icons-material/Person';
+import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
+import CloseIcon from '@mui/icons-material/Close';
 
 import { useTheme } from '@mui/material/styles';
 
 import { useGetUsersQuery, useDeleteUserMutation, useUpdateUserMutation } from '../../redux/features/services/baseApi';
-
 import SpinnerLoader from '../../ui-component/SpinnerLoader';
 
 export default function Users() {
@@ -31,28 +36,53 @@ export default function Users() {
 
   const { data, isLoading } = useGetUsersQuery();
 
-  const [deleteUser] = useDeleteUserMutation();
+  const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
   const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
 
   const [open, setOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   const [selectedUser, setSelectedUser] = useState(null);
-
   const [password, setPassword] = useState('');
-
   const [selectedImage, setSelectedImage] = useState(null);
-
   const [previewImage, setPreviewImage] = useState('');
+  const [toast, setToast] = useState({
+    open: false,
+    message: ''
+  });
 
   const users = Array.isArray(data?.data) ? data.data : [];
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this user?')) return;
+  const handleCloseToast = (event, reason) => {
+    if (reason === 'clickaway') return;
+    setToast((prev) => ({ ...prev, open: false }));
+  };
+
+  const handleOpenDeleteDialog = (user) => {
+    setUserToDelete(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleCloseDeleteDialog = () => {
+    if (isDeleting) return;
+    setDeleteDialogOpen(false);
+    setUserToDelete(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!userToDelete) return;
 
     try {
-      await deleteUser(id).unwrap();
+      await deleteUser(userToDelete.id).unwrap();
+      handleCloseDeleteDialog();
     } catch (error) {
-      console.log(error);
+      const errorMessage = error?.data?.message || error?.error || 'حدث خطأ أثناء حذف المستخدم';
+      setToast({
+        open: true,
+        message: errorMessage
+      });
+      handleCloseDeleteDialog();
     }
   };
 
@@ -64,7 +94,6 @@ export default function Users() {
     });
 
     setPassword('');
-
     setSelectedImage(null);
 
     if (user?.image) {
@@ -75,27 +104,30 @@ export default function Users() {
 
     setOpen(true);
   };
+
+  const handleCloseEdit = () => {
+    if (isUpdating) return;
+    setOpen(false);
+    setSelectedUser(null);
+  };
+
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
 
     if (file) {
       setSelectedImage(file);
-
       setPreviewImage(URL.createObjectURL(file));
     }
   };
+
   const handleUpdate = async () => {
     try {
       const formData = new FormData();
 
       formData.append('name', selectedUser?.name || '');
-
       formData.append('phone_number', selectedUser?.phoneNumber || '');
-
       formData.append('gender', selectedUser?.gender || '');
-
       formData.append('email', selectedUser?.email || '');
-
       formData.append('birth_date', selectedUser?.birth_date || '');
 
       if (password.trim()) {
@@ -106,17 +138,19 @@ export default function Users() {
         formData.append('image', selectedImage);
       }
 
-      const res = await updateUser({
+      await updateUser({
         id: selectedUser.id,
         formData
       }).unwrap();
 
-      console.log('UPDATE SUCCESS:', res);
-
       setOpen(false);
+      setSelectedUser(null);
     } catch (err) {
-      console.log('UPDATE ERROR:', err);
-      console.log('ERROR DATA:', err?.data);
+      const errorMessage = err?.data?.message || err?.error || 'حدث خطأ أثناء تحديث بيانات المستخدم';
+      setToast({
+        open: true,
+        message: errorMessage
+      });
     }
   };
 
@@ -132,6 +166,17 @@ export default function Users() {
         background: '#f5f7fa'
       }}
     >
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={4000}
+        onClose={handleCloseToast}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseToast} severity="error" variant="filled" sx={{ width: '100%' }}>
+          {toast.message}
+        </Alert>
+      </Snackbar>
+
       <Stack direction={isMobile ? 'column' : 'row'} spacing={2} justifyContent="space-between" mb={4}>
         <Typography variant={isMobile ? 'h5' : 'h4'} fontWeight={700}>
           👥 Users Management
@@ -161,7 +206,7 @@ export default function Users() {
                 bgcolor: theme.palette.primary.main
               }}
             >
-              {!user?.profile_img && <PersonIcon />}
+              {!user?.image && <PersonIcon />}
             </Avatar>
 
             <Box flex={1} width="100%">
@@ -186,7 +231,7 @@ export default function Users() {
                 variant="contained"
                 color="error"
                 startIcon={<DeleteIcon />}
-                onClick={() => handleDelete(user.id)}
+                onClick={() => handleOpenDeleteDialog(user)}
               >
                 Delete
               </Button>
@@ -194,8 +239,7 @@ export default function Users() {
           </Card>
         ))}
       </Stack>
-
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm" fullScreen={isMobile}>
+      <Dialog open={open} onClose={handleCloseEdit} fullWidth maxWidth="sm" fullScreen={isMobile}>
         <DialogTitle>Edit User</DialogTitle>
 
         <DialogContent>
@@ -216,7 +260,7 @@ export default function Users() {
                 {selectedImage ? 'New image selected' : 'Current user image'}
               </Typography>
 
-              <Button variant="outlined" component="label">
+              <Button variant="outlined" component="label" disabled={isUpdating}>
                 Change Image
                 <input hidden type="file" accept="image/*" onChange={handleImageChange} />
               </Button>
@@ -225,6 +269,7 @@ export default function Users() {
             <TextField
               fullWidth
               label="Name"
+              disabled={isUpdating}
               value={selectedUser?.name || ''}
               onChange={(e) =>
                 setSelectedUser({
@@ -237,6 +282,7 @@ export default function Users() {
             <TextField
               fullWidth
               label="Email"
+              disabled={isUpdating}
               value={selectedUser?.email || ''}
               onChange={(e) =>
                 setSelectedUser({
@@ -249,6 +295,7 @@ export default function Users() {
             <TextField
               fullWidth
               label="Phone"
+              disabled={isUpdating}
               value={selectedUser?.phoneNumber || ''}
               onChange={(e) =>
                 setSelectedUser({
@@ -261,6 +308,7 @@ export default function Users() {
             <TextField
               fullWidth
               label="Gender"
+              disabled={isUpdating}
               value={selectedUser?.gender || ''}
               onChange={(e) =>
                 setSelectedUser({
@@ -274,6 +322,7 @@ export default function Users() {
               fullWidth
               type="date"
               label="Birth Date"
+              disabled={isUpdating}
               InputLabelProps={{
                 shrink: true
               }}
@@ -286,21 +335,113 @@ export default function Users() {
               }
             />
 
-            <TextField fullWidth label="New Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <TextField
+              fullWidth
+              label="New Password"
+              type="password"
+              disabled={isUpdating}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </Stack>
         </DialogContent>
 
-        <DialogActions
-          sx={{
-            p: 2
-          }}
-        >
-          <Button fullWidth={isMobile} onClick={() => setOpen(false)}>
+        <DialogActions sx={{ p: 2 }}>
+          <Button fullWidth={isMobile} onClick={handleCloseEdit} disabled={isUpdating}>
             Cancel
           </Button>
 
-          <Button fullWidth={isMobile} variant="contained" onClick={handleUpdate} disabled={isUpdating}>
+          <Button
+            fullWidth={isMobile}
+            variant="contained"
+            onClick={handleUpdate}
+            disabled={isUpdating}
+            startIcon={isUpdating ? <CircularProgress size={20} color="inherit" /> : null}
+          >
             {isUpdating ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleCloseDeleteDialog}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 4,
+            p: 1,
+            textAlign: 'center'
+          }
+        }}
+      >
+        <IconButton
+          onClick={handleCloseDeleteDialog}
+          disabled={isDeleting}
+          sx={{
+            position: 'absolute',
+            right: 12,
+            top: 12,
+            color: (theme) => theme.palette.grey[500]
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
+
+        <DialogContent sx={{ pt: 3, pb: 1 }}>
+          <Stack alignItems="center" spacing={2}>
+            <Box
+              sx={{
+                width: 64,
+                height: 64,
+                borderRadius: '50%',
+                backgroundColor: '#ffebee',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'error.main'
+              }}
+            >
+              <WarningAmberRoundedIcon sx={{ fontSize: 36 }} />
+            </Box>
+
+            <Typography variant="h6" fontWeight={700}>
+              Confirm deletion
+            </Typography>
+
+            <Typography variant="body2" color="text.secondary">
+              Are you sure you want to delete the user?{' '}
+              <Box component="span" fontWeight={700} color="text.primary">
+                "{userToDelete?.name || 'this user'}"
+              </Box>{' '}
+              This action cannot be undone later.
+            </Typography>
+          </Stack>
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2, justifyContent: 'center', gap: 1 }}>
+          <Button
+            fullWidth
+            variant="outlined"
+            color="inherit"
+            onClick={handleCloseDeleteDialog}
+            disabled={isDeleting}
+            sx={{ borderRadius: 2, py: 1 }}
+          >
+            Cancel
+          </Button>
+
+          <Button
+            fullWidth
+            variant="contained"
+            color="error"
+            onClick={handleConfirmDelete}
+            disabled={isDeleting}
+            startIcon={isDeleting ? <CircularProgress size={20} color="inherit" /> : null}
+            disableElevation
+            sx={{ borderRadius: 2, py: 1 }}
+          >
+            {isDeleting ? 'Deleting...' : 'Confirm Deletion'}
           </Button>
         </DialogActions>
       </Dialog>

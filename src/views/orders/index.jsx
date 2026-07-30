@@ -10,15 +10,20 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogContentText,
   TextField,
   DialogActions,
   MenuItem,
-  Divider
+  Divider,
+  CircularProgress,
+  Snackbar,
+  Alert
 } from '@mui/material';
 
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -31,20 +36,27 @@ export default function Orders() {
   const theme = useTheme();
 
   const user = useSelector((state) => state.auth.user);
-
   const role = user?.accountType;
 
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const { data, isLoading } = useGetOrdersQuery(role);
 
-  const [deleteOrder] = useDeleteOrderMutation();
-  const [updateOrder] = useUpdateOrderMutation();
+  const [deleteOrder, { isLoading: isDeleting }] = useDeleteOrderMutation();
+  const [updateOrder, { isLoading: isUpdating }] = useUpdateOrderMutation();
 
   const orders = Array.isArray(data?.data) ? data.data : [];
 
   const [open, setOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedDeleteId, setSelectedDeleteId] = useState(null);
+
+  const [toast, setToast] = useState({
+    open: false,
+    message: ''
+  });
 
   const [form, setForm] = useState({
     shippingAddress: '',
@@ -53,10 +65,36 @@ export default function Orders() {
     status: ''
   });
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this order?')) return;
+  const handleCloseToast = (event, reason) => {
+    if (reason === 'clickaway') return;
+    setToast((prev) => ({ ...prev, open: false }));
+  };
 
-    await deleteOrder(id);
+  const handleOpenDeleteDialog = (id) => {
+    setSelectedDeleteId(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleCloseDeleteDialog = () => {
+    if (isDeleting) return;
+    setDeleteDialogOpen(false);
+    setSelectedDeleteId(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedDeleteId) return;
+
+    try {
+      await deleteOrder(selectedDeleteId).unwrap();
+      handleCloseDeleteDialog();
+    } catch (err) {
+      const errorMessage = err?.data?.message || err?.error || 'حدث خطأ أثناء حذف الطلب';
+      setToast({
+        open: true,
+        message: errorMessage
+      });
+      handleCloseDeleteDialog();
+    }
   };
 
   const handleEditOpen = (order) => {
@@ -70,6 +108,12 @@ export default function Orders() {
     });
 
     setOpen(true);
+  };
+
+  const handleEditClose = () => {
+    if (isUpdating) return;
+    setOpen(false);
+    setSelectedOrder(null);
   };
 
   const handleSave = async () => {
@@ -90,16 +134,19 @@ export default function Orders() {
 
       payload.status = form.status;
 
-      const res = await updateOrder({
+      await updateOrder({
         id: selectedOrder.id || selectedOrder.orderId,
         ...payload
       }).unwrap();
 
-      console.log('UPDATED:', res);
-
       setOpen(false);
+      setSelectedOrder(null);
     } catch (err) {
-      console.log('UPDATE ERROR:', err);
+      const errorMessage = err?.data?.message || err?.error || 'حدث خطأ أثناء تحديث الطلب';
+      setToast({
+        open: true,
+        message: errorMessage
+      });
     }
   };
 
@@ -109,6 +156,17 @@ export default function Orders() {
 
   return (
     <Box p={isMobile ? 2 : 3}>
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={4000}
+        onClose={handleCloseToast}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseToast} severity="error" variant="filled" sx={{ width: '100%' }}>
+          {toast.message}
+        </Alert>
+      </Snackbar>
+
       <Stack direction={isMobile ? 'column' : 'row'} justifyContent="space-between" spacing={2} mb={4}>
         <Typography variant={isMobile ? 'h5' : 'h4'} fontWeight={700}>
           🛒 Orders
@@ -160,7 +218,7 @@ export default function Orders() {
                     color="error"
                     variant="contained"
                     startIcon={<DeleteIcon />}
-                    onClick={() => handleDelete(order.id || order.orderId)}
+                    onClick={() => handleOpenDeleteDialog(order.id || order.orderId)}
                   >
                     Delete
                   </Button>
@@ -206,9 +264,8 @@ export default function Orders() {
           </Card>
         ))}
       </Stack>
-
       {role !== 'vendor' && (
-        <Dialog open={open} onClose={() => setOpen(false)} fullWidth>
+        <Dialog open={open} onClose={handleEditClose} fullWidth>
           <DialogTitle>Edit Order</DialogTitle>
 
           <DialogContent>
@@ -216,6 +273,7 @@ export default function Orders() {
               <TextField
                 label="Name"
                 value={form.shippingName}
+                disabled={isUpdating}
                 onChange={(e) =>
                   setForm({
                     ...form,
@@ -227,6 +285,7 @@ export default function Orders() {
               <TextField
                 label="Phone"
                 value={form.shippingPhone}
+                disabled={isUpdating}
                 onChange={(e) =>
                   setForm({
                     ...form,
@@ -238,6 +297,7 @@ export default function Orders() {
               <TextField
                 label="Address"
                 value={form.shippingAddress}
+                disabled={isUpdating}
                 onChange={(e) =>
                   setForm({
                     ...form,
@@ -250,6 +310,7 @@ export default function Orders() {
                 select
                 label="Status"
                 value={form.status}
+                disabled={isUpdating}
                 onChange={(e) =>
                   setForm({
                     ...form,
@@ -266,15 +327,81 @@ export default function Orders() {
             </Stack>
           </DialogContent>
 
-          <DialogActions>
-            <Button onClick={() => setOpen(false)}>Cancel</Button>
+          <DialogActions sx={{ p: 2 }}>
+            <Button onClick={handleEditClose} disabled={isUpdating}>
+              Cancel
+            </Button>
 
-            <Button variant="contained" onClick={handleSave}>
-              Save
+            <Button
+              variant="contained"
+              onClick={handleSave}
+              disabled={isUpdating}
+              startIcon={isUpdating ? <CircularProgress size={20} color="inherit" /> : null}
+            >
+              {isUpdating ? 'Saving...' : 'Save'}
             </Button>
           </DialogActions>
         </Dialog>
       )}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleCloseDeleteDialog}
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            p: 1,
+            maxWidth: 400,
+            width: '100%'
+          }
+        }}
+      >
+        <DialogTitle sx={{ textAlign: 'center', pt: 3 }}>
+          <Avatar
+            sx={{
+              bgcolor: theme.palette.error.light,
+              color: theme.palette.error.main,
+              width: 56,
+              height: 56,
+              margin: '0 auto 12px auto'
+            }}
+          >
+            <WarningAmberRoundedIcon fontSize="large" />
+          </Avatar>
+          <Typography variant="h6" fontWeight={700}>
+            Confirm order deletion
+          </Typography>
+        </DialogTitle>
+
+        <DialogContent sx={{ textAlign: 'center' }}>
+          <DialogContentText color="text.secondary">
+            Are you sure you want to delete this order? You will not be able to restore it after deletion.
+          </DialogContentText>
+        </DialogContent>
+
+        <DialogActions sx={{ justifyContent: 'center', gap: 1, pb: 2, px: 3 }}>
+          <Button
+            onClick={handleCloseDeleteDialog}
+            variant="outlined"
+            color="inherit"
+            fullWidth
+            disabled={isDeleting}
+            sx={{ borderRadius: 2 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmDelete}
+            variant="contained"
+            color="error"
+            fullWidth
+            disabled={isDeleting}
+            startIcon={isDeleting ? <CircularProgress size={20} color="inherit" /> : null}
+            sx={{ borderRadius: 2 }}
+          >
+            {isDeleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

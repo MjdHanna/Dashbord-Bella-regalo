@@ -4,7 +4,6 @@ import * as Yup from 'yup';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 
-// MUI
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
@@ -14,11 +13,9 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 
-// icons
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 
-// redux
 import { useLoginMutation } from '../../../redux/features/services/baseApi';
 import { setCredentials, selectToken } from '../../../redux/features/auth/authSlice';
 
@@ -80,27 +77,26 @@ export default function AuthLogin() {
 
   const inputStyle = {
     borderRadius: '14px',
-    background: '#f8fbfc',
+    background: '#fcf8fa',
     transition: '0.3s',
 
     '& fieldset': {
-      borderColor: '#d9e5e7'
+      borderColor: '#e3adca'
     },
 
     '&:hover fieldset': {
-      borderColor: '#4f8b8d'
+      borderColor: '#7e2553'
     },
 
     '&.Mui-focused fieldset': {
-      borderColor: '#4f8b8d',
-      boxShadow: '0 0 0 4px rgba(79,139,141,0.12)'
+      borderColor: '#7e2553',
+      boxShadow: '0 0 0 4px rgba(126, 37, 83, 0.12)'
     }
   };
 
   return (
     <form onSubmit={formik.handleSubmit}>
       <Stack spacing={3}>
-        {/* Email */}
         <Box>
           <InputLabel
             sx={{
@@ -127,7 +123,6 @@ export default function AuthLogin() {
           </Typography>
         </Box>
 
-        {/* Password */}
         <Box>
           <InputLabel
             sx={{
@@ -160,7 +155,6 @@ export default function AuthLogin() {
           </Typography>
         </Box>
 
-        {/* login button */}
         <Button
           fullWidth
           type="submit"
@@ -172,15 +166,15 @@ export default function AuthLogin() {
             fontWeight: 700,
             fontSize: '15px',
             textTransform: 'none',
-            background: 'linear-gradient(135deg, #2f5f62 0%, #4f8b8d 100%)',
+            background: '#D4AF37',
             color: '#fff',
-            boxShadow: '0 10px 25px rgba(47,95,98,0.25)',
+            boxShadow: '0 10px 25px rgba(126, 37, 83, 0.25)',
             transition: '0.3s',
 
             '&:hover': {
               transform: 'translateY(-2px)',
-              background: 'linear-gradient(135deg, #264d50 0%, #41797b 100%)',
-              boxShadow: '0 14px 30px rgba(47,95,98,0.35)'
+              background: 'linear-gradient(135deg, #aa8c2c 0%, #d4af37 50%, #ebd172 100%)',
+              boxShadow: '0 14px 30px rgba(126, 37, 83, 0.35)'
             }
           }}
         >
