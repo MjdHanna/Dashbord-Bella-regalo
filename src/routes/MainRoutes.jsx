@@ -6,6 +6,7 @@ import Loadable from 'ui-component/Loadable';
 
 import ProtectedRoute from './ProtectedRoute';
 import Unauthorized from '../views/pages/Unauthorized/Unauthorized';
+import { Navigate } from 'react-router-dom';
 
 // pages
 const DashboardDefault = Loadable(lazy(() => import('views/dashboard/dashboard')));
@@ -38,6 +39,10 @@ const MainRoutes = {
   ),
 
   children: [
+    {
+      path: '/',
+      element: <Navigate to="/dashboard/default" replace />
+    },
     {
       path: 'dashboard/default',
 
