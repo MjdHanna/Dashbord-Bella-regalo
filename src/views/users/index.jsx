@@ -90,7 +90,8 @@ export default function Users() {
     setSelectedUser({
       ...user,
       originalEmail: user.email,
-      birth_date: user.birth_date || ''
+      birth_date: user.birth_date || '',
+      accountBalance: user.accountBalance || '0'
     });
 
     setPassword('');
@@ -129,6 +130,7 @@ export default function Users() {
       formData.append('gender', selectedUser?.gender || '');
       formData.append('email', selectedUser?.email || '');
       formData.append('birth_date', selectedUser?.birth_date || '');
+      formData.append('accountBalance', selectedUser?.accountBalance || '0');
 
       if (password.trim()) {
         formData.append('password', password);
@@ -217,6 +219,9 @@ export default function Users() {
               {user.phoneNumber && <Typography variant="body2">📞 {user.phoneNumber}</Typography>}
 
               {user.birth_date && <Typography variant="body2">🎂 {user.birth_date}</Typography>}
+              <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 'bold', color: 'success.main' }}>
+                💰 Balance: {user.accountBalance || '0'}
+              </Typography>
 
               {user.gender && <Chip label={user.gender} size="small" sx={{ mt: 1 }} />}
             </Box>
@@ -239,6 +244,7 @@ export default function Users() {
           </Card>
         ))}
       </Stack>
+
       <Dialog open={open} onClose={handleCloseEdit} fullWidth maxWidth="sm" fullScreen={isMobile}>
         <DialogTitle>Edit User</DialogTitle>
 
@@ -334,6 +340,19 @@ export default function Users() {
                 })
               }
             />
+            <TextField
+              fullWidth
+              label="Account Balance"
+              type="number"
+              disabled={isUpdating}
+              value={selectedUser?.accountBalance || ''}
+              onChange={(e) =>
+                setSelectedUser({
+                  ...selectedUser,
+                  accountBalance: e.target.value
+                })
+              }
+            />
 
             <TextField
               fullWidth
@@ -362,6 +381,7 @@ export default function Users() {
           </Button>
         </DialogActions>
       </Dialog>
+
       <Dialog
         open={deleteDialogOpen}
         onClose={handleCloseDeleteDialog}

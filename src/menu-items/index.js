@@ -10,11 +10,12 @@ import occasions from './occasions';
 import vendors from './vendors';
 import drivers from './drivers';
 import categories from './categories';
+import adds from './adds';
 import reports from './reports';
 // ==============================|| MENU ITEMS ||============================== //
 
 const menuItems = {
-  items: [dashboard, users, products, orders, categories, brands, occasions, vendors, drivers, reports]
+  items: [dashboard, users, products, orders, categories, brands, occasions, vendors, drivers, reports, adds]
 };
 
 export default menuItems;

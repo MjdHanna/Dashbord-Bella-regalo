@@ -29,6 +29,7 @@ const CategoriesPage = Loadable(lazy(() => import('views/categories')));
 
 const ReportsPage = Loadable(lazy(() => import('views/reports')));
 
+const AddsPage = Loadable(lazy(() => import('views/adds')));
 const MainRoutes = {
   path: '/',
 
@@ -90,7 +91,14 @@ const MainRoutes = {
         </ProtectedRoute>
       )
     },
-
+    {
+      path: 'adds',
+      element: (
+        <ProtectedRoute roles={['admin']}>
+          <AddsPage />
+        </ProtectedRoute>
+      )
+    },
     // ================= ADMIN + VENDOR =================
 
     {

@@ -2,7 +2,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 export const baseApi = createApi({
   reducerPath: 'api',
-  tagTypes: ['Occasions', 'Brands', 'Categories', 'Messages', 'Users', 'Orders', 'Vendors', 'Drivers', 'Products'],
+  tagTypes: ['Occasions', 'Brands', 'Categories', 'Messages', 'Users', 'Orders', 'Vendors', 'Drivers', 'Products', 'Adds'],
   baseQuery: fetchBaseQuery({
     baseUrl: 'https://cdb-back.bw-businessworld.net/api',
     prepareHeaders: (headers, { getState }) => {
@@ -404,8 +404,30 @@ export const baseApi = createApi({
         method: 'PATCH'
       }),
       invalidatesTags: ['Products']
-    })
+    }),
     //End productssssssssssss
+    // ================= ADDS =================
+    getAdds: builder.query({
+      query: () => 'admin/admin-adds',
+      providesTags: ['Adds']
+    }),
+
+    createAdd: builder.mutation({
+      query: (formData) => ({
+        url: 'admin/admin-adds',
+        method: 'POST',
+        body: formData
+      }),
+      invalidatesTags: ['Adds']
+    }),
+
+    deleteAdd: builder.mutation({
+      query: (id) => ({
+        url: `admin/admin-adds/${id}`,
+        method: 'DELETE'
+      }),
+      invalidatesTags: ['Adds']
+    })
   })
 });
 
@@ -459,5 +481,8 @@ export const {
   useGetProductByIdQuery,
   useCreateProductMutation,
   useUpdateProductMutation,
-  useDeleteProductMutation
+  useDeleteProductMutation,
+  useGetAddsQuery,
+  useCreateAddMutation,
+  useDeleteAddMutation
 } = baseApi;
